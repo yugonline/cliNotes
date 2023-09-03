@@ -1,9 +1,20 @@
 use chrono::prelude::*;
+use clap::Parser;
 
+#[derive(Parser, Debug)]
 pub struct DevLog {
+    #[clap(skip)]
     pub id: i64,
+
+    /// The content of the dev log entry
+    #[clap(long)]
     pub entry: String,
+
+    #[clap(skip)]
     pub date: DateTime<Local>,
+
+    /// Relevant tags for your logs
+    #[clap(long, required = false)]
     pub tags: Option<String>,
 }
 
@@ -15,6 +26,12 @@ impl DevLog {
             date: Local::now(),
             tags,
         }
+    }
+
+    // This function sets the default values after parsing
+    pub fn finalize(&mut self) {
+        self.id = -1;
+        self.date = Local::now();
     }
 }
 

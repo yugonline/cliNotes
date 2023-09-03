@@ -2,11 +2,24 @@ mod dao;
 mod db;
 mod models;
 
-extern crate clap;
-
 use crate::dao::create_dev_log;
 use crate::models::DevLog;
-use clap::{App, Arg, SubCommand};
+use clap::Parser;
+
+#[derive(Parser, Debug)]
+#[clap(version = "0.1", author = "Your Name <youremail@example.com>", about = "Manage your dev logs, learning notes, and code snippets")]
+struct CliNotes {
+    #[clap(subcommand)]
+    command: Command,
+}
+
+#[derive(Parser, Debug)]
+enum Command {
+    DevLog(DevLog)
+    CodeSnippet(Code)
+    // ... other subcommands can be added in a similar manner ...
+}
+
 
 fn main() {
     use std::env;
@@ -26,53 +39,14 @@ fn main() {
         .initialize()
         .expect("Failed to initialize the database");
 
-    let matches = App::new("CliNotes")
-        .version("0.1")
-        .author("Your Name <youremail@example.com>")
-        .about("Manage your dev logs, learning notes, and code snippets")
-        .subcommand(
-            SubCommand::with_name("devlog")
-                .about("Add a new dev log entry")
-                .arg(
-                    Arg::with_name("ENTRY")
-                        .help("The content of the dev log entry")
-                        .required(true)
-                        .index(1),
-                )
-                .arg(
-                    Arg::with_name("TAGS")
-                        .help("Relevant tags for your logs")
-                        .required(false)
-                        .index(2),
-                ),
-        )
-        .subcommand(
-            SubCommand::with_name("codesnip")
-                .about("Add a new code snippet")
-                .arg(
-                    Arg::with_name("CODE")
-                        .help("The content of the code snippet")
-                        .required(true)
-                        .index(1),
-                )
-                .arg(
-                    Arg::with_name("LANG")
-                        .help("The language of the code snippet")
-                        .required(true)
-                        .index(2),
-                ),
-        )
-        .subcommand(
-            SubCommand::with_name("learning_notes")
-                .about("Add a new learning note")
-                .arg(
-                    Arg::with_name("FILE")
-                        .help("Path to the markdown file")
-                        .required(true)
-                        .index(1),
-                ),
-        )
-        .get_matches();
+
+    let opts: CliNotes = CliNotes::parse();
+    match opts.command {
+        Command::DevLog(mut devlog) => {
+            devlog.finalize();
+            create_dev_log(database.get_connection(),&devlog).unwrap();
+        }
+    }
 
     match matches.subcommand() {
         ("devlog", Some(devlog_matches)) => {

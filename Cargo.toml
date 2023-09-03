@@ -8,4 +8,4 @@ edition = "2021"
 [dependencies]
 rusqlite = {version = "0.29.0", features = ["chrono"]}
 chrono = "0.4.28"
-clap = "2.21.1"
+clap = {version = "4.4.2", features = ["derive"]}
