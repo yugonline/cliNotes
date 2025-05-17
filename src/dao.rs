@@ -1,5 +1,5 @@
 use crate::models::{CodeSnippet, DevLog};
-use rusqlite::{params, Connection, Error, OptionalExtension};
+use rusqlite::{params, Connection, OptionalExtension};
 
 fn preprocess_code(code: &str, language: &str) -> String {
     match language {
@@ -109,17 +109,18 @@ pub fn create_dev_log(conn: &Connection, dev_log: &DevLog) -> Result<i64, rusqli
 
 pub fn read_dev_log(conn: &Connection, dev_log_id: i64) -> Result<Option<DevLog>, rusqlite::Error> {
     conn.query_row(
-        "SELECT id, full_code, created_at, updated_at, language_id FROM code_snippets WHERE id = ?1",
+        "SELECT id, entry, date, tags FROM dev_logs WHERE id = ?1",
         params![dev_log_id],
         |row| {
             Ok(DevLog {
                 id: row.get(0)?,
                 entry: row.get(1)?,
                 date: row.get(2)?,
-                tags: row.get(3)?
+                tags: row.get(3)?,
             })
         },
-    ).optional()
+    )
+    .optional()
 }
 
 #[cfg(test)]
