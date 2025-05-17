@@ -1,5 +1,5 @@
 use crate::models::{CodeSnippet, DevLog};
-use rusqlite::{params, Connection, Error, OptionalExtension};
+use rusqlite::{params, Connection, OptionalExtension};
 
 fn preprocess_code(code: &str, language: &str) -> String {
     match language {

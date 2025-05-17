@@ -4,20 +4,24 @@ mod models;
 
 use crate::dao::create_dev_log;
 use crate::models::DevLog;
-use clap::Parser;
+use clap::{Parser, Subcommand};
 
 #[derive(Parser, Debug)]
-#[clap(version = "0.1", author = "Your Name <youremail@example.com>", about = "Manage your dev logs, learning notes, and code snippets")]
+#[command(
+    version = "0.1",
+    author = "Your Name <youremail@example.com>",
+    about = "Manage your dev logs, learning notes, and code snippets"
+)]
 struct CliNotes {
-    #[clap(subcommand)]
-    command: Command,
+    #[command(subcommand)]
+    command: Option<Commands>,
 }
 
-#[derive(Parser, Debug)]
-enum Command {
-    DevLog(DevLog)
-    CodeSnippet(Code)
-    // ... other subcommands can be added in a similar manner ...
+#[derive(Subcommand, Debug)]
+enum Commands {
+    /// Add a development log entry
+    DevLog(DevLog),
+    // Additional subcommands can be added here
 }
 
 
@@ -42,31 +46,11 @@ fn main() {
 
     let opts: CliNotes = CliNotes::parse();
     match opts.command {
-        Command::DevLog(mut devlog) => {
+        Some(Commands::DevLog(mut devlog)) => {
             devlog.finalize();
-            create_dev_log(database.get_connection(),&devlog).unwrap();
+            create_dev_log(database.get_connection(), &devlog).unwrap();
         }
-    }
-
-    match matches.subcommand() {
-        ("devlog", Some(devlog_matches)) => {
-            let entry = devlog_matches.value_of("ENTRY").unwrap();
-            let tags = devlog_matches.value_of("TAGS").unwrap();
-            let log = DevLog::new(entry.to_string(), Some(tags.to_string()));
-            create_dev_log(database.get_connection(), &log).unwrap();
-            println!("Added dev log: {}", entry);
-        }
-        ("codesnip", Some(codesnip_matches)) => {
-            let code = codesnip_matches.value_of("CODE").unwrap();
-            // Call your function to handle code snippet addition
-            println!("Added code snippet: {}", code);
-        }
-        ("learning_notes", Some(learning_notes_matches)) => {
-            let file_path = learning_notes_matches.value_of("FILE").unwrap();
-            // Call your function to handle learning note addition
-            println!("Added learning note from file: {}", file_path);
-        }
-        _ => {
+        None => {
             println!("---------------------------------------------------");
             println!(" ██████ ██      ██ ███    ██  ██████  ████████ ███████ ███████ ");
             println!("██      ██      ██ ████   ██ ██    ██    ██    ██      ██      ");
