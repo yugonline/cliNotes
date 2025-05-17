@@ -1,75 +1,25 @@
-use rusqlite::{Connection, ErrorCode, Result};
-use std::path::Path;
+use diesel::prelude::*;
+use diesel::sqlite::SqliteConnection;
+use diesel::connection::SimpleConnection;
 
 pub struct Database {
-    conn: Connection,
+    conn: SqliteConnection,
 }
 
 impl Database {
     /// Creates a new database or opens an existing one
-    pub fn new(db_path: &str) -> Result<Self> {
-        let conn = Connection::open(Path::new(db_path))?;
+    pub fn new(db_path: &str) -> Result<Self, ConnectionError> {
+        let conn = SqliteConnection::establish(db_path)?;
         Ok(Database { conn })
     }
 
-    /// Initialize database by creating tables if they dont exist.
-    pub fn initialize(&self) -> Result<(), rusqlite::Error> {
-        let required_tables = vec![
-            "dev_logs",
-            "languages",
-            "code_snippets",
-            "learning_notes",
-            "snippets_used",
-        ];
-        let required_triggers = vec![
-            "update_timestamp_after_update_code_snippets",
-            "update_timestamp_after_update_languages",
-            "update_timestamp_after_update_learning_notes",
-        ];
-
-        for table in &required_tables {
-            if !self.check_existence("table", table)? {
-                return Err(rusqlite::Error::SqliteFailure(
-                    rusqlite::ffi::Error {
-                        code: ErrorCode::Unknown,
-                        extended_code: 1,
-                    },
-                    Some(format!(
-                        "Table {} doesn't exist. Please run 'sqlite3 your_database_file.db < sql/init.sql'",
-                        table
-                    )),
-                ));
-            }
-        }
-
-        for trigger in &required_triggers {
-            if !self.check_existence("trigger", trigger)? {
-                return Err(rusqlite::Error::SqliteFailure(
-                    rusqlite::ffi::Error {
-                        code: ErrorCode::Unknown,
-                        extended_code: 1,
-                    },
-                    Some(format!(
-                        "Trigger {} doesn't exist. Please run 'sqlite3 your_database_file.db < sql/init.sql'",
-                        trigger
-                    )),
-                ));
-            }
-        }
-
-        Ok(())
+    /// Initialize database by executing the SQL script if required
+    pub fn initialize(&mut self) -> QueryResult<()> {
+        let sql = include_str!("../sql/init.sql");
+        self.conn.batch_execute(sql)
     }
 
-    fn check_existence(&self, kind: &str, name: &str) -> Result<bool, rusqlite::Error> {
-        let count: i64 = self.conn.query_row(
-            "SELECT COUNT(*) FROM sqlite_master WHERE type = ?1 AND name = ?2",
-            &[kind, name],
-            |row| row.get(0),
-        )?;
-        Ok(count > 0)
-    }
-
-    pub fn get_connection(&self) -> &Connection {
-        &self.conn
+    pub fn get_connection(&mut self) -> &mut SqliteConnection {
+        &mut self.conn
     }
 }
