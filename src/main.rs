@@ -1,10 +1,12 @@
 mod dao;
 mod db;
 mod models;
+mod schema;
 
-use crate::dao::create_dev_log;
-use crate::models::DevLog;
+
 use clap::{Parser, Subcommand};
+use dao::create_dev_log;
+use models::{DevLogArgs, DevLog};
 
 #[derive(Parser, Debug)]
 #[command(
@@ -24,8 +26,16 @@ enum Commands {
     // Additional subcommands can be added here
 }
 
-
 fn main() {
+    let args = CliNotes::parse();
+    let mut db = db::Database::new("clidblocal.db").expect("failed to connect DB");
+    db.initialize().expect("failed to init DB");
+
+    match args.command {
+        Commands::DevLog(devlog_args) => {
+            let new_log = NewDevLog::from(&devlog_args);
+            create_dev_log(db.get_connection(), &new_log).expect("failed to insert");
+            println!("Added dev log");
     use std::env;
 
     if let Ok(path) = env::current_dir() {
@@ -69,5 +79,7 @@ fn main() {
             println!("[5] Exit");
             println!("---------------------------------------------------");
         }
+    }
+}
     }
 }
