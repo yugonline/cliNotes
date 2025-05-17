@@ -9,11 +9,11 @@ build:
 
 # Initialize the SQLite database
 init-db:
-	sqlite3 clidblocal.db < src/init.sql
+	sqlite3 clidblocal.db < sql/init.sql
 
 # Run the built binary
 start:
-	target/debug/cliNotes
+	target/debug/CliNotes
 
 clean:
 	cargo clean
