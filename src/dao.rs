@@ -3,6 +3,7 @@ use diesel::sqlite::SqliteConnection;
 
 use crate::models::{NewDevLog};
 use crate::schema::dev_logs;
+use crate::models::{CodeSnippet, DevLog};
 
 fn preprocess_code(code: &str, language: &str) -> String {
     match language {
@@ -14,11 +15,28 @@ fn preprocess_code(code: &str, language: &str) -> String {
     }
 }
 
+
 /// Insert a new dev log into the database using Diesel
 pub fn create_dev_log(conn: &mut SqliteConnection, dev_log: &NewDevLog) -> QueryResult<usize> {
     diesel::insert_into(dev_logs::table)
         .values(dev_log)
         .execute(conn)
+  
+pub fn read_dev_log(conn: &Connection, dev_log_id: i64) -> Result<Option<DevLog>, rusqlite::Error> {
+    conn.query_row(
+        "SELECT id, entry, date, tags FROM dev_logs WHERE id = ?1",
+        params![dev_log_id],
+        |row| {
+            Ok(DevLog {
+                id: row.get(0)?,
+                entry: row.get(1)?,
+                date: row.get(2)?,
+                tags: row.get(3)?,
+            })
+        },
+    )
+    .optional()
+
 }
 
 #[cfg(test)]
