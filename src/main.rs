@@ -6,7 +6,7 @@ mod schema;
 
 use clap::{Parser, Subcommand};
 use dao::create_dev_log;
-use models::{DevLogArgs, NewDevLog};
+use models::{DevLogArgs, DevLog};
 
 #[derive(Parser, Debug)]
 #[command(
