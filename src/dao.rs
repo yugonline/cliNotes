@@ -125,10 +125,10 @@ pub fn delete_code_snippet(conn: &Connection, snippet_id: i64) -> Result<(), Dao
 pub fn create_dev_log(conn: &Connection, dev_log: &DevLog) -> Result<i64, DaoError> {
     let language = "js";
 
+    // Use the tag string directly from the dev_log struct
     let tags = match &dev_log.tags {
         None => String::new(),
-        Some(tag) => preprocess_code(tag, language)
-            .map_err(DaoError::PreprocessingError)?,
+        Some(tag) => tag.clone(),  // Just clone the tag without preprocessing
     };
 
     let processed_entry = preprocess_code(&dev_log.entry, language)

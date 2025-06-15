@@ -111,11 +111,9 @@ fn test_create_and_read_dev_log() {
     assert!(read_log.entry.ends_with("\n'''"));
     assert!(read_log.entry.contains("Today I worked on the DAO module."));
 
-    // Check tags if present
+    // Check tags if present - now stored directly without preprocessing
     if let Some(tags) = read_log.tags {
-        assert!(tags.starts_with("'''\n"));
-        assert!(tags.ends_with("\n'''"));
-        assert!(tags.contains("rust, testing"));
+        assert!(tags == "rust, testing");
     }
 }
 
