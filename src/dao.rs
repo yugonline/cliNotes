@@ -12,7 +12,7 @@ fn preprocess_code(code: &str, language: &str) -> String {
 }
 //Languages only READ operation available
 
-fn get_language_from_id(conn: &Connection, language_id: i64) -> Result<String, rusqlite::Error> {
+pub fn get_language_from_id(conn: &Connection, language_id: i64) -> Result<String, rusqlite::Error> {
     conn.query_row(
         "SELECT name FROM languages WHERE id = ?",
         params![language_id],
@@ -20,7 +20,7 @@ fn get_language_from_id(conn: &Connection, language_id: i64) -> Result<String, r
     )
 }
 
-fn get_language_id_from_name(conn: &Connection, lang_name: &str) -> Result<i64, rusqlite::Error> {
+pub fn get_language_id_from_name(conn: &Connection, lang_name: &str) -> Result<i64, rusqlite::Error> {
     conn.query_row(
         "SELECT id FROM languages WHERE name = ?",
         params![lang_name],
@@ -28,7 +28,7 @@ fn get_language_id_from_name(conn: &Connection, lang_name: &str) -> Result<i64, 
     )
 }
 
-fn language_exists(conn: &Connection, language_name: &str) -> Result<bool, rusqlite::Error> {
+pub fn language_exists(conn: &Connection, language_name: &str) -> Result<bool, rusqlite::Error> {
     let count: i32 = conn.query_row(
         "SELECT COUNT(*) FROM languages WHERE name = ?",
         params![language_name],
