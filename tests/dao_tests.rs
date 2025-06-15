@@ -65,7 +65,7 @@ fn test_create_and_read_code_snippet() {
 
     // Read the updated code snippet
     let updated_snippet = dao::read_code_snippet(&conn, snippet_id).unwrap().unwrap();
-    assert_eq!(updated_snippet.full_code, read_snippet.full_code);
+    assert!(updated_snippet.full_code.ends_with("\n// Updated code\n'''"));
 
     // Delete the code snippet
     dao::delete_code_snippet(&conn, snippet_id).unwrap();
