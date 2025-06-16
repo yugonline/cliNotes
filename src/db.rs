@@ -3,7 +3,7 @@ use std::fs;
 use std::path::Path;
 
 pub struct Database {
-    conn: Connection,
+    pub conn: Connection,
 }
 
 impl Database {
@@ -12,6 +12,11 @@ impl Database {
         let conn = Connection::open(Path::new(db_path))?;
         Ok(Database { conn })
     }
+
+    pub fn conn(&self) -> &Connection {
+        &self.conn
+    }
+
 
     /// Initialize database by creating tables if they dont exist.
     pub fn initialize(&self) -> Result<(), rusqlite::Error> {

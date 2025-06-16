@@ -1,50 +1,73 @@
+// It's conventional to name integration test files with a _test suffix.
+// e.g., database_test.rs or db_test.rs
 
-
-
-use rusqlite::{Connection};
+// This is the correct way to import your library's modules for use in tests.
+use cli_notes::db;
 use std::fs;
 use std::path::Path;
 
-#[cfg(test)]
-mod tests {
-    use super::*;
+/// A simple guard struct to ensure the test database file is cleaned up
+/// automatically when the test function goes out of scope.
+struct TestDbGuard<'a> {
+    path: &'a str,
+}
 
-    #[test]
-    fn test_database_initialization() {
-        // Create a temporary database file
-        let db_path = "test_db_init_test.db";
-        if Path::new(db_path).exists() {
-            fs::remove_file(db_path).unwrap();
+impl<'a> Drop for TestDbGuard<'a> {
+    fn drop(&mut self) {
+        if Path::new(self.path).exists() {
+            fs::remove_file(self.path).expect("Failed to clean up test database file.");
         }
-
-        // Create a new connection to the database
-        let conn = Connection::open(Path::new(db_path)).expect("Failed to open database");
-
-        // Check that dev_logs table doesn't exist initially
-        let mut stmt = conn.prepare("SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name='dev_logs'").unwrap();
-        let count: i64 = stmt.query_row([], |row| row.get(0)).unwrap();
-        assert_eq!(count, 0, "dev_logs table should not exist initially");
-
-        // Initialize the database
-        let db = crate::db::Database { conn };
-        db.initialize().expect("Failed to initialize database");
-
-        // Check that dev_logs table exists after initialization
-        let mut stmt = conn.prepare("SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name='dev_logs'").unwrap();
-        let count: i64 = stmt.query_row([], |row| row.get(0)).unwrap();
-        assert_eq!(count, 1, "dev_logs table should exist after initialization");
-
-        // Test inserting data into dev_logs
-        conn.execute("INSERT INTO dev_logs (entry, tags) VALUES ('Test entry', 'test')", []).unwrap();
-
-        // Verify the data was inserted
-        let mut stmt = conn.prepare("SELECT COUNT(*) FROM dev_logs").unwrap();
-        let count: i64 = stmt.query_row([], |row| row.get(0)).unwrap();
-        assert_eq!(count, 1, "Should have one entry in dev_logs table");
-
-        // Clean up
-        fs::remove_file(db_path).unwrap();
     }
 }
 
+#[test]
+fn test_database_lifecycle() {
+    // --- SETUP ---
+    // Define a unique path for our test database and ensure it's cleaned up.
+    let db_path = "test_suite_main.db";
+    let _guard = TestDbGuard { path: db_path }; // Cleanup runs when _guard is dropped.
 
+    // --- ACT & ASSERT: Part 1 - Creation ---
+    // The test begins here. We expect `new` to successfully create the database file.
+    let db = db::Database::new(db_path).expect("Database::new should succeed.");
+    assert!(Path::new(db_path).exists(), "Database file should be created.");
+
+    // --- ACT & ASSERT: Part 2 - Initialization ---
+    // Now, test the initialization. We expect it to run without errors.
+    // The `initialize` method itself is responsible for creating and verifying
+    // all the necessary tables and triggers. Our test just needs to confirm
+    // that the method reports success.
+    db.initialize()
+        .expect("Database::initialize should succeed.");
+
+    // --- ACT & ASSERT: Part 3 - Data Interaction ---
+    // Now that the database is initialized, we can test a simple data insertion
+    // to ensure the tables are usable.
+    let insert_result = db.conn().execute(
+        "INSERT INTO dev_logs (entry, tags) VALUES (?1, ?2)",
+        ["This is a test entry from an integration test.", "test, rust"],
+    );
+    println!("Insert result: {:?}", insert_result); 
+    assert!(
+        insert_result.is_ok(),
+        "Should be able to insert into dev_logs after initialization."
+    );
+    assert_eq!(
+        insert_result.unwrap(),
+        1,
+        "The insertion should affect exactly one row."
+    );
+
+    // Verify the data was actually inserted.
+    let entry_count: i64 = db
+        .conn()
+        .query_row("SELECT COUNT(*) FROM dev_logs", [], |row| row.get(0))
+        .expect("Should be able to query dev_logs.");
+
+    assert_eq!(
+        entry_count, 1,
+        "dev_logs table should contain exactly one entry."
+    );
+
+    // The _guard will now go out of scope, and its Drop implementation will delete the file.
+}
