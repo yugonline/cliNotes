@@ -1,6 +1,6 @@
 use rusqlite::Connection;
-use CliNotes::dao::{self, *};
-use CliNotes::models::{CodeSnippet, DevLog};
+use cli_notes::dao::{self, *};
+use cli_notes::models::{CodeSnippet, DevLog};
 
 #[test]
 fn test_create_and_read_code_snippet() {
