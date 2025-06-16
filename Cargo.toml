@@ -1,5 +1,5 @@
 [package]
-name = "CliNotes"
+name = "cli_notes"
 version = "0.1.0"
 edition = "2021"
 
@@ -9,3 +9,6 @@ edition = "2021"
 rusqlite = {version = "0.29.0", features = ["chrono"]}
 chrono = "0.4.28"
 clap = {version = "4.4.2", features = ["derive"]}
+
+[dev-dependencies]
+assert_cmd = "2.0"

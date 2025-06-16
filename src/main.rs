@@ -1,9 +1,6 @@
-mod dao;
-mod db;
-mod models;
-
-use crate::dao::create_dev_log;
-use crate::models::DevLog;
+use cli_notes::db;
+use cli_notes::dao::create_dev_log;
+use cli_notes::models::DevLog;
 use clap::{Parser, Subcommand};
 
 #[derive(Parser, Debug)]
