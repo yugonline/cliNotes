@@ -2,6 +2,27 @@ use rusqlite::Connection;
 use cli_notes::dao;
 use cli_notes::models::{CodeSnippet, JournalEntry};
 
+
+// ADD THIS HELPER FUNCTION
+/// Creates an in-memory SQLite database and initializes it using the main `db.initialize()` logic.
+/// Returns the Connection for use in tests.
+fn setup_initialized_db() -> rusqlite::Connection {
+    // Note: Using ":memory:" with `Connection::open` creates a temporary, in-memory database.
+    let conn = rusqlite::Connection::open_in_memory()
+        .expect("Failed to create in-memory database for testing.");
+
+    // We need a temporary Database struct to call the initialize method.
+    // The `initialize` method depends on the `sql/init.sql` file.
+    // `cargo test` runs from the project root, so the path is correct.
+    let db_initializer = cli_notes::db::Database { conn: &conn };
+    db_initializer.initialize().expect("Database initialization failed in test setup.");
+    
+    // Return the connection, which now has the schema loaded.
+    conn
+}
+
+
+
 #[test]
 fn test_create_and_read_code_snippet() {
     // Create an in-memory database
