@@ -161,23 +161,18 @@ pub fn delete_code_snippet(conn: &Connection, snippet_id: i64) -> Result<(), Dao
 
 //CRUD for journal entries
 pub fn create_journal_entry(conn: &Connection, journal_entry: &JournalEntry) -> Result<i64, DaoError> {
-    let language = "js";
-
     // Use the tag string directly from the journal_entry struct
     let tags = match &journal_entry.tags {
         None => String::new(),
         Some(tag) => tag.clone(),  // Just clone the tag without preprocessing
     };
 
-    let processed_entry = preprocess_code(&journal_entry.entry, language)
-        .map_err(DaoError::PreprocessingError)?;
-
     // Call AI function to get sentiment and AI tags
     let (sentiment, ai_tags) = call_journal_ai(&journal_entry.entry);
 
     conn.execute(
         "INSERT INTO journal_entries (entry, tags, sentiment, ai_tags) VALUES (?, ?, ?, ?)",
-        params![processed_entry, tags, sentiment, ai_tags],
+        params![&journal_entry.entry, tags, sentiment, ai_tags],
     )?;
     Ok(conn.last_insert_rowid())
 }
@@ -201,19 +196,14 @@ pub fn read_journal_entry(conn: &Connection, journal_entry_id: i64) -> Result<Op
 }
 
 pub fn get_journal_entries_by_period(conn: &Connection, period: &str) -> Result<Vec<JournalEntry>, DaoError> {
-    let date_filter = match period {
-        "week" => "date >= date('now', '-7 days')",
-        "month" => "date >= date('now', '-1 month')",
-        "year" => "date >= date('now', '-1 year')",
-        _ => "1=1", // Return all entries for invalid period
+    let query = match period {
+        "week" => "SELECT id, entry, date, tags, sentiment, ai_tags FROM journal_entries WHERE date >= date('now', '-7 days') ORDER BY date DESC",
+        "month" => "SELECT id, entry, date, tags, sentiment, ai_tags FROM journal_entries WHERE date >= date('now', '-1 month') ORDER BY date DESC",
+        "year" => "SELECT id, entry, date, tags, sentiment, ai_tags FROM journal_entries WHERE date >= date('now', '-1 year') ORDER BY date DESC",
+        _ => return Err(DaoError::PreprocessingError(format!("Invalid period: {}", period))),
     };
 
-    let query = format!(
-        "SELECT id, entry, date, tags, sentiment, ai_tags FROM journal_entries WHERE {} ORDER BY date DESC",
-        date_filter
-    );
-
-    let mut stmt = conn.prepare(&query)?;
+    let mut stmt = conn.prepare(query)?;
     let journal_iter = stmt.query_map([], |row| {
         Ok(JournalEntry {
             id: row.get(0)?,
@@ -258,6 +248,48 @@ pub fn search_journal_entries(conn: &Connection, query: &str) -> Result<Vec<Jour
     }
     Ok(entries)
 }
+
+
+
+use std::collections::HashSet;
+use crate::models::JournalSummary;
+
+pub fn summarize_journal_entries(entries: &Vec<JournalEntry>) -> JournalSummary {
+    let mut positive_count = 0;
+    let mut negative_count = 0;
+    let mut neutral_count = 0;
+    let mut all_ai_tags = Vec::new();
+
+    for entry in entries {
+        match entry.sentiment.as_deref() {
+            Some("positive") => positive_count += 1,
+            Some("negative") => negative_count += 1,
+            _ => neutral_count += 1,
+        }
+
+        if let Some(ai_tags) = &entry.ai_tags {
+            all_ai_tags.extend(ai_tags.split(',').map(|s| s.trim()));
+        }
+    }
+
+    let common_topics = all_ai_tags.into_iter()
+        .collect::<HashSet<_>>()
+        .into_iter()
+        .take(5)
+        .collect::<Vec<_>>()
+        .join(", ");
+
+    JournalSummary {
+        total_entries: entries.len(),
+        positive_count,
+        negative_count,
+        neutral_count,
+        common_topics,
+    }
+}
+
+
+
 
 #[cfg(test)]
 mod tests {

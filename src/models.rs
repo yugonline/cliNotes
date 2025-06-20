@@ -1,26 +1,11 @@
 use chrono::prelude::*;
-use clap::Parser;
-
-#[derive(Parser, Debug)]
+#[derive(Debug)]
 pub struct JournalEntry {
-    #[clap(skip)]
     pub id: i64,
-
-    /// The content of the journal entry
-    #[clap(long)]
     pub entry: String,
-
-    #[clap(skip)]
     pub date: DateTime<Local>,
-
-    /// Relevant tags for your journal entry
-    #[clap(long, required = false)]
     pub tags: Option<String>,
-
-    #[clap(skip)]
     pub sentiment: Option<String>,
-
-    #[clap(skip)]
     pub ai_tags: Option<String>,
 }
 
@@ -35,13 +20,19 @@ impl JournalEntry {
             ai_tags: None,
         }
     }
-
-    // This function sets the default values after parsing
-    pub fn finalize(&mut self) {
-        self.id = -1;
-        self.date = Local::now();
-    }
 }
+
+
+#[derive(Debug)]
+pub struct JournalSummary {
+    pub total_entries: usize,
+    pub positive_count: usize,
+    pub negative_count: usize,
+    pub neutral_count: usize,
+    pub common_topics: String,
+}
+
+
 
 pub struct Language {
     pub id: i64,
