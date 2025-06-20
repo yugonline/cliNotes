@@ -105,10 +105,8 @@ fn test_create_and_read_journal_entry() {
     // Read the journal entry back from the database
     let read_entry = dao::read_journal_entry(&conn, entry_id).unwrap().unwrap();
 
-    // Verify that the journal entry was created correctly - account for preprocessed code
-    assert!(read_entry.entry.starts_with("'''\n"));
-    assert!(read_entry.entry.ends_with("\n'''"));
-    assert!(read_entry.entry.contains("Today I worked on the Rust DAO module and I''m excited about the progress!"));
+    // Verify that the journal entry was created correctly
+    assert_eq!(read_entry.entry, "Today I worked on the Rust DAO module and I'm excited about the progress!");
 
     // Check tags if present - now stored directly without preprocessing
     if let Some(tags) = read_entry.tags {

@@ -161,23 +161,18 @@ pub fn delete_code_snippet(conn: &Connection, snippet_id: i64) -> Result<(), Dao
 
 //CRUD for journal entries
 pub fn create_journal_entry(conn: &Connection, journal_entry: &JournalEntry) -> Result<i64, DaoError> {
-    let language = "js";
-
     // Use the tag string directly from the journal_entry struct
     let tags = match &journal_entry.tags {
         None => String::new(),
         Some(tag) => tag.clone(),  // Just clone the tag without preprocessing
     };
 
-    let processed_entry = preprocess_code(&journal_entry.entry, language)
-        .map_err(DaoError::PreprocessingError)?;
-
     // Call AI function to get sentiment and AI tags
     let (sentiment, ai_tags) = call_journal_ai(&journal_entry.entry);
 
     conn.execute(
         "INSERT INTO journal_entries (entry, tags, sentiment, ai_tags) VALUES (?, ?, ?, ?)",
-        params![processed_entry, tags, sentiment, ai_tags],
+        params![&journal_entry.entry, tags, sentiment, ai_tags],
     )?;
     Ok(conn.last_insert_rowid())
 }
