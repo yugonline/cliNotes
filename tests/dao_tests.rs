@@ -1,5 +1,5 @@
 use rusqlite::Connection;
-use cli_notes::dao::{self, *};
+use cli_notes::dao;
 use cli_notes::models::{CodeSnippet, JournalEntry};
 
 #[test]
@@ -98,9 +98,6 @@ fn test_create_and_read_journal_entry() {
         String::from("Today I worked on the Rust DAO module and I'm excited about the progress!"),
         Some(String::from("rust, testing")),
     );
-
-    // Finalize the journal entry (sets default values)
-    journal_entry.finalize();
 
     // Create the journal entry in the database
     let entry_id = dao::create_journal_entry(&conn, &journal_entry).unwrap();

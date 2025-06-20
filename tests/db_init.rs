@@ -1,7 +1,7 @@
 
 
 
-use rusqlite::{Connection, ErrorCode};
+use rusqlite::Connection;
 use std::fs;
 use std::path::Path;
 

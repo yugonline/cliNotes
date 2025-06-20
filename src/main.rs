@@ -72,8 +72,7 @@ fn main() {
         Some(Commands::Journal { command }) => {
             match command {
                 JournalCommands::Add { entry, tags } => {
-                    let mut journal_entry = JournalEntry::new(entry, tags);
-                    journal_entry.finalize();
+                    let journal_entry = JournalEntry::new(entry, tags);
                     match create_journal_entry(database.get_connection(), &journal_entry) {
                         Ok(id) => {
                             println!("✅ Journal entry created successfully with ID: {}", id);

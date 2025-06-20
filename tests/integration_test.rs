@@ -1,7 +1,7 @@
 
 
 
-use rusqlite::{Connection, Result};
+use rusqlite::Connection;
 use std::fs;
 use std::path::Path;
 use cli_notes::db;
