@@ -1,13 +1,13 @@
 use cli_notes::db;
-use cli_notes::dao::create_dev_log;
-use cli_notes::models::DevLog;
+use cli_notes::dao::{create_journal_entry, get_journal_entries_by_period, search_journal_entries};
+use cli_notes::models::JournalEntry;
 use clap::{Parser, Subcommand};
 
 #[derive(Parser, Debug)]
 #[command(
     version = "0.1",
     author = "Your Name <youremail@example.com>",
-    about = "Manage your dev logs, learning notes, and code snippets"
+    about = "AI-Powered Journaling App - Manage your journal entries, learning notes, and code snippets with intelligent insights"
 )]
 struct CliNotes {
     #[command(subcommand)]
@@ -16,9 +16,35 @@ struct CliNotes {
 
 #[derive(Subcommand, Debug)]
 enum Commands {
-    /// Add a development log entry
-    DevLog(DevLog),
+    /// AI-powered journal operations
+    Journal {
+        #[command(subcommand)]
+        command: JournalCommands,
+    },
     // Additional subcommands can be added here
+}
+
+#[derive(Subcommand, Debug)]
+enum JournalCommands {
+    /// Add a new journal entry with AI analysis
+    Add {
+        /// The journal entry content
+        entry: String,
+        /// Optional tags for the entry
+        #[arg(long)]
+        tags: Option<String>,
+    },
+    /// Generate AI summary for a specific time period
+    Summarize {
+        /// Time period (week, month, year)
+        #[arg(long, default_value = "week")]
+        period: String,
+    },
+    /// Ask AI questions about your journal entries
+    Insights {
+        /// Your question about the journal entries
+        query: String,
+    },
 }
 
 
@@ -43,9 +69,92 @@ fn main() {
 
     let opts: CliNotes = CliNotes::parse();
     match opts.command {
-        Some(Commands::DevLog(mut devlog)) => {
-            devlog.finalize();
-            create_dev_log(database.get_connection(), &devlog).unwrap();
+        Some(Commands::Journal { command }) => {
+            match command {
+                JournalCommands::Add { entry, tags } => {
+                    let mut journal_entry = JournalEntry::new(entry, tags);
+                    journal_entry.finalize();
+                    match create_journal_entry(database.get_connection(), &journal_entry) {
+                        Ok(id) => {
+                            println!("✅ Journal entry created successfully with ID: {}", id);
+                            println!("🤖 AI analysis completed - sentiment and tags automatically generated!");
+                        }
+                        Err(e) => println!("❌ Error creating journal entry: {}", e),
+                    }
+                }
+                JournalCommands::Summarize { period } => {
+                    match get_journal_entries_by_period(database.get_connection(), &period) {
+                        Ok(entries) => {
+                            if entries.is_empty() {
+                                println!("📝 No journal entries found for the {} period.", period);
+                            } else {
+                                println!("📊 AI Summary for the past {}:", period);
+                                println!("Found {} entries", entries.len());
+                                
+                                // Simple AI summary generation
+                                let mut positive_count = 0;
+                                let mut negative_count = 0;
+                                let mut neutral_count = 0;
+                                let mut all_ai_tags = Vec::new();
+                                
+                                for entry in &entries {
+                                    match entry.sentiment.as_deref() {
+                                        Some("positive") => positive_count += 1,
+                                        Some("negative") => negative_count += 1,
+                                        _ => neutral_count += 1,
+                                    }
+                                    
+                                    if let Some(ai_tags) = &entry.ai_tags {
+                                        all_ai_tags.extend(ai_tags.split(',').map(|s| s.trim()));
+                                    }
+                                }
+                                
+                                println!("\n🎭 Sentiment Analysis:");
+                                println!("  Positive: {} entries", positive_count);
+                                println!("  Negative: {} entries", negative_count);
+                                println!("  Neutral: {} entries", neutral_count);
+                                
+                                println!("\n🏷️  Most common topics: {}", 
+                                    all_ai_tags.into_iter().collect::<std::collections::HashSet<_>>()
+                                        .into_iter().take(5).collect::<Vec<_>>().join(", "));
+                            }
+                        }
+                        Err(e) => println!("❌ Error retrieving entries: {}", e),
+                    }
+                }
+                JournalCommands::Insights { query } => {
+                    match search_journal_entries(database.get_connection(), &query) {
+                        Ok(entries) => {
+                            if entries.is_empty() {
+                                println!("🔍 No entries found matching your query: '{}'", query);
+                            } else {
+                                println!("🧠 AI Insights for query: '{}'", query);
+                                println!("Found {} relevant entries:\n", entries.len());
+                                
+                                for (i, entry) in entries.iter().take(3).enumerate() {
+                                    println!("{}. [{}] {}", 
+                                        i + 1, 
+                                        entry.date.format("%Y-%m-%d"),
+                                        entry.entry.chars().take(100).collect::<String>()
+                                    );
+                                    if let Some(sentiment) = &entry.sentiment {
+                                        println!("   Sentiment: {}", sentiment);
+                                    }
+                                    if let Some(ai_tags) = &entry.ai_tags {
+                                        println!("   AI Tags: {}", ai_tags);
+                                    }
+                                    println!();
+                                }
+                                
+                                if entries.len() > 3 {
+                                    println!("... and {} more entries", entries.len() - 3);
+                                }
+                            }
+                        }
+                        Err(e) => println!("❌ Error searching entries: {}", e),
+                    }
+                }
+            }
         }
         None => {
             println!("---------------------------------------------------");
@@ -57,13 +166,20 @@ fn main() {
             println!("                                                                ");
             println!("                                                                ");
             println!("");
-            println!("Welcome to CliNotes!");
+            println!("Welcome to CliNotes - AI-Powered Journaling!");
             println!("");
-            println!("[1] View Dev Logs (Latest 3 entries)");
-            println!("[2] View Learning Notes (Latest 3 entries)");
-            println!("[3] View Code Snippets (Last 5 entries)");
-            println!("[4] Add new Code Snippet");
-            println!("[5] Exit");
+            println!("🤖 AI Journal Features:");
+            println!("[1] Add Journal Entry (with AI sentiment analysis & auto-tagging)");
+            println!("[2] AI Summary (weekly/monthly insights)");
+            println!("[3] AI Insights (ask questions about your entries)");
+            println!("[4] View Learning Notes (Latest 3 entries)");
+            println!("[5] View Code Snippets (Last 5 entries)");
+            println!("[6] Add new Code Snippet");
+            println!("[7] Exit");
+            println!("");
+            println!("💡 Try: 'cargo run -- journal add \"Today I learned Rust!\"'");
+            println!("💡 Try: 'cargo run -- journal summarize --period week'");
+            println!("💡 Try: 'cargo run -- journal insights \"How do I feel about coding?\"'");
             println!("---------------------------------------------------");
         }
     }

@@ -1,17 +1,19 @@
-# CliNotes
+# CliNotes - AI-Powered Journaling App
 ## About
 
-CliNotes is a command-line interface (CLI) tool designed to assist developers in quickly inputting and querying information. Whether it's logging development progress, noting down learning points, or storing code snippets, CliNotes has got you covered.
-Vision
+CliNotes is an intelligent command-line interface (CLI) tool that transforms your development journaling experience with AI-powered insights. Whether you're logging development progress, reflecting on learning experiences, or storing code snippets, CliNotes provides smart analysis to help you understand your thoughts and feelings over time.
 
-### There will be three features for this application
-- Dev logs
-  - An append only type of log which is simple to create
-  - `cliNotes devlog "today I started Rust project"(Log entry) "rust,sql,schema"(optional tags)`
-  - once added they can be viewed in the app or yanked to be used somewhere else
-  - One example use case can be suppose you have a journal but that is a sophisticated app that does not play nice with terminal
-  - You can work on your terminal all day and keep logging everything
-  - Then after the day is done simply yank it out and paste it wherever you'd like
+## Vision
+
+### There are three main features for this application
+- **AI Journal** 🤖
+  - An intelligent journaling system with automatic sentiment analysis and tag generation
+  - `cliNotes journal add "Today I started a Rust project and I'm excited about learning systems programming!"`
+  - AI automatically analyzes sentiment (positive/negative/neutral) and generates relevant tags
+  - Smart summarization: `cliNotes journal summarize --period week`
+  - Intelligent insights: `cliNotes journal insights "How have I felt about my coding projects this month?"`
+  - Perfect for developers who want to track their emotional journey and learning progress
+  - Export capabilities to integrate with other journaling apps
 - Learning Notes
   - Learning Notes aims to be a vimWiki type place but this is a long term vision for it
   - For now I am only aiming for it to be a collection of md files stored with this app being the only common connection between them
@@ -23,19 +25,38 @@ Vision
   - Sometimes the results are not the same and so such a useful snippet gets lost
   - Remember that email regex you saw on SO ? yeah, where is it now? I bet its no where
   - With cliNotes you can simply do this 
-
-```bash
-cliNotes codesnip '(?:[a-z0-9!#$%&'"'"'*+/=?^_`{|}~-]+(?:\.[a-z0-9!#$%&'"'"'*+/=?^_`{|}~-]+)*|"(?:[\x01-\x08\x0b\x0c\x0e-\x1f\x21\x23-\x5b\x5d-\x7f]|\\[\x01-\x09\x0b\x0c\x0e-\x7f])*")@(?:(?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\.)+[a-z0-9](?:[a-z0-9-]*[a-z0-9])?|\[(?:(?:(2(5[0-5]|[0-4][0-9])|1[0-9][0-9]|[1-9]?[0-9]))\.){3}(?:(2(5[0-5]|[0-4][0-9])|1[0-9][0-9]|[1-9]?[0-9])|[a-z0-9-]*[a-z0-9]:(?:[\x01-\x08\x0b\x0c\x0e-\x1f\x21-\x5a\x53-\x7f]|\\[\x01-\x09\x0b\x0c\x0e-\x7f])+\])' 'regex'
-```
   
-The primary goal of CliNotes is to create a tool that respects the UNIX philosophy—doing one thing and doing it well. It's designed to interoperate seamlessly with other programs, potentially making it a vital part of any developer's toolkit.
-Design Principles
+## AI Journal Features 🧠
 
-    Command-line Interface (CLI): With a focus on clear, descriptive commands, users can expect straightforward interactions. The tool utilizes CLI parsing libraries to manage command-line arguments and provide built-in help messages.
+The AI Journal is the flagship feature of CliNotes, providing intelligent analysis of your development journey:
 
-    UNIX Philosophy Adherence: CliNotes respects the time-tested UNIX philosophy. It's designed to function effectively as a standalone tool while also offering the flexibility to integrate with other tools via text streams.
+### Automatic Sentiment Analysis
+- **Positive Detection**: Identifies entries expressing happiness, excitement, satisfaction, and achievement
+- **Negative Detection**: Recognizes frustration, sadness, challenges, and setbacks  
+- **Neutral Classification**: Categorizes factual or balanced entries
 
-    Interactive Mode: Beyond simple CLI interactions, CliNotes offers an interactive mode. This mode, resembling a Text User Interface (TUI), allows users to scroll through entries, navigate menus, and much more.
+### Smart Tag Generation
+- **Technology Tags**: Automatically detects programming languages, frameworks, and tools mentioned
+- **Activity Tags**: Identifies learning, debugging, project work, and other development activities
+- **Context Tags**: Recognizes work-related, personal projects, and learning contexts
+
+### Intelligent Summarization
+- **Weekly/Monthly/Yearly Summaries**: Get AI-generated insights about your emotional patterns and focus areas
+- **Sentiment Trends**: Track how your feelings about coding and projects evolve over time
+- **Topic Analysis**: Understand what subjects you've been most engaged with
+
+### Natural Language Insights
+- **Query Your Journal**: Ask questions like "How do I feel about React?" or "What challenges did I face last month?"
+- **Pattern Recognition**: AI identifies recurring themes and emotional patterns in your entries
+- **Contextual Search**: Find entries not just by keywords, but by emotional context and meaning
+
+## Design Principles
+
+**Command-line Interface (CLI)**: With a focus on clear, descriptive commands, users can expect straightforward interactions. The tool utilizes CLI parsing libraries to manage command-line arguments and provide built-in help messages.
+
+**UNIX Philosophy Adherence**: CliNotes respects the time-tested UNIX philosophy. It's designed to function effectively as a standalone tool while also offering the flexibility to integrate with other tools via text streams.
+
+**AI-Enhanced Experience**: Beyond simple CLI interactions, CliNotes offers intelligent analysis that helps you understand your development journey and emotional patterns over time.
 
 ## Getting Started
 Building the Project
@@ -54,29 +75,72 @@ Start the application:
 
 make start
 
-Interface Preview
+## Interface Preview
 
 Upon starting, users are welcomed with:
+
 ```
-
-
-```scss
-
-
 ██████ ██      ██ ███    ██  ██████  ████████ ███████ ███████
 ██      ██      ██ ████   ██ ██    ██    ██    ██      ██
 ██      ██      ██ ██ ██  ██ ██    ██    ██    █████   ███████
 ██      ██      ██ ██  ██ ██ ██    ██    ██    ██           ██
 ██████ ███████ ██ ██   ████  ██████     ██    ███████ ███████
 
+Welcome to CliNotes - AI-Powered Journaling!
 
-Welcome to CliNotes!
+🤖 AI Journal Features:
+[1] Add Journal Entry (with AI sentiment analysis & auto-tagging)
+[2] AI Summary (weekly/monthly insights)
+[3] AI Insights (ask questions about your entries)
+[4] View Learning Notes (Latest 3 entries)
+[5] View Code Snippets (Last 5 entries)
+[6] Add new Code Snippet
+[7] Exit
 
-[1] View Dev Logs (Latest 3 entries)
-[2] View Learning Notes (Latest 3 entries)
-[3] View Code Snippets (Last 5 entries)
-[4] Add new Code Snippet
-[5] Exit
+💡 Try: 'cargo run -- journal add "Today I learned Rust!"'
+💡 Try: 'cargo run -- journal summarize --period week'
+💡 Try: 'cargo run -- journal insights "How do I feel about coding?"'
+```
+
+## Command Examples
+
+### Adding Journal Entries
+```bash
+# Basic journal entry
+cargo run -- journal add "Today I started learning Rust and I'm excited about systems programming!"
+
+# Journal entry with custom tags
+cargo run -- journal add "Fixed a challenging bug in the authentication system" --tags "debugging,auth,backend"
+
+# The AI will automatically:
+# - Analyze sentiment (positive/negative/neutral)
+# - Generate relevant tags (rust, learning, systems, etc.)
+# - Store everything for future analysis
+```
+
+### Getting AI Summaries
+```bash
+# Weekly summary
+cargo run -- journal summarize --period week
+
+# Monthly summary  
+cargo run -- journal summarize --period month
+
+# Yearly summary
+cargo run -- journal summarize --period year
+```
+
+### AI Insights and Search
+```bash
+# Ask questions about your journal
+cargo run -- journal insights "How have I felt about my React projects?"
+cargo run -- journal insights "What challenges did I face last month?"
+cargo run -- journal insights "When was I most productive?"
+
+# Search by keywords, sentiment, or topics
+cargo run -- journal insights "debugging"
+cargo run -- journal insights "learning new technologies"
+```
 
 Recommendations for Use
 

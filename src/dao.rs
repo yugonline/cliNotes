@@ -1,6 +1,44 @@
-use crate::models::{CodeSnippet, DevLog};
+use crate::models::{CodeSnippet, JournalEntry};
 use rusqlite::{params, Connection, OptionalExtension};
 use std::fmt;
+
+// AI placeholder function - simulates AI processing
+pub fn call_journal_ai(entry_text: &str) -> (String, String) {
+    // This is a placeholder implementation
+    // In a real implementation, this would call an external AI service
+    
+    // Simple sentiment analysis based on keywords
+    let sentiment = if entry_text.to_lowercase().contains("happy") || 
+                      entry_text.to_lowercase().contains("good") || 
+                      entry_text.to_lowercase().contains("great") ||
+                      entry_text.to_lowercase().contains("excited") {
+        "positive".to_string()
+    } else if entry_text.to_lowercase().contains("sad") || 
+              entry_text.to_lowercase().contains("bad") || 
+              entry_text.to_lowercase().contains("terrible") ||
+              entry_text.to_lowercase().contains("frustrated") {
+        "negative".to_string()
+    } else {
+        "neutral".to_string()
+    };
+    
+    // Simple tag generation based on common programming keywords
+    let mut ai_tags = Vec::new();
+    if entry_text.to_lowercase().contains("rust") { ai_tags.push("rust"); }
+    if entry_text.to_lowercase().contains("project") { ai_tags.push("project"); }
+    if entry_text.to_lowercase().contains("bug") { ai_tags.push("debugging"); }
+    if entry_text.to_lowercase().contains("learn") { ai_tags.push("learning"); }
+    if entry_text.to_lowercase().contains("code") { ai_tags.push("coding"); }
+    if entry_text.to_lowercase().contains("work") { ai_tags.push("work"); }
+    
+    let ai_tags_string = if ai_tags.is_empty() {
+        "general".to_string()
+    } else {
+        ai_tags.join(",")
+    };
+    
+    (sentiment, ai_tags_string)
+}
 
 pub fn preprocess_code(code: &str, language: &str) -> Result<String, String> {
     match language {
@@ -121,40 +159,104 @@ pub fn delete_code_snippet(conn: &Connection, snippet_id: i64) -> Result<(), Dao
     Ok(())
 }
 
-//CRUD for dev logs
-pub fn create_dev_log(conn: &Connection, dev_log: &DevLog) -> Result<i64, DaoError> {
+//CRUD for journal entries
+pub fn create_journal_entry(conn: &Connection, journal_entry: &JournalEntry) -> Result<i64, DaoError> {
     let language = "js";
 
-    // Use the tag string directly from the dev_log struct
-    let tags = match &dev_log.tags {
+    // Use the tag string directly from the journal_entry struct
+    let tags = match &journal_entry.tags {
         None => String::new(),
         Some(tag) => tag.clone(),  // Just clone the tag without preprocessing
     };
 
-    let processed_entry = preprocess_code(&dev_log.entry, language)
+    let processed_entry = preprocess_code(&journal_entry.entry, language)
         .map_err(DaoError::PreprocessingError)?;
 
+    // Call AI function to get sentiment and AI tags
+    let (sentiment, ai_tags) = call_journal_ai(&journal_entry.entry);
+
     conn.execute(
-        "INSERT INTO dev_logs (entry, tags) VALUES (?, ?)",
-        params![processed_entry, tags],
+        "INSERT INTO journal_entries (entry, tags, sentiment, ai_tags) VALUES (?, ?, ?, ?)",
+        params![processed_entry, tags, sentiment, ai_tags],
     )?;
     Ok(conn.last_insert_rowid())
 }
 
-pub fn read_dev_log(conn: &Connection, dev_log_id: i64) -> Result<Option<DevLog>, DaoError> {
+pub fn read_journal_entry(conn: &Connection, journal_entry_id: i64) -> Result<Option<JournalEntry>, DaoError> {
     conn.query_row(
-        "SELECT id, entry, date, tags FROM dev_logs WHERE id = ?1",
-        params![dev_log_id],
+        "SELECT id, entry, date, tags, sentiment, ai_tags FROM journal_entries WHERE id = ?1",
+        params![journal_entry_id],
         |row| {
-            Ok(DevLog {
+            Ok(JournalEntry {
                 id: row.get(0)?,
                 entry: row.get(1)?,
                 date: row.get(2)?,
                 tags: row.get(3)?,
+                sentiment: row.get(4)?,
+                ai_tags: row.get(5)?,
             })
         },
     )
     .optional().map_err(DaoError::from)
+}
+
+pub fn get_journal_entries_by_period(conn: &Connection, period: &str) -> Result<Vec<JournalEntry>, DaoError> {
+    let date_filter = match period {
+        "week" => "date >= date('now', '-7 days')",
+        "month" => "date >= date('now', '-1 month')",
+        "year" => "date >= date('now', '-1 year')",
+        _ => "1=1", // Return all entries for invalid period
+    };
+
+    let query = format!(
+        "SELECT id, entry, date, tags, sentiment, ai_tags FROM journal_entries WHERE {} ORDER BY date DESC",
+        date_filter
+    );
+
+    let mut stmt = conn.prepare(&query)?;
+    let journal_iter = stmt.query_map([], |row| {
+        Ok(JournalEntry {
+            id: row.get(0)?,
+            entry: row.get(1)?,
+            date: row.get(2)?,
+            tags: row.get(3)?,
+            sentiment: row.get(4)?,
+            ai_tags: row.get(5)?,
+        })
+    })?;
+
+    let mut entries = Vec::new();
+    for entry in journal_iter {
+        entries.push(entry?);
+    }
+    Ok(entries)
+}
+
+pub fn search_journal_entries(conn: &Connection, query: &str) -> Result<Vec<JournalEntry>, DaoError> {
+    let search_query = format!("%{}%", query.to_lowercase());
+    
+    let mut stmt = conn.prepare(
+        "SELECT id, entry, date, tags, sentiment, ai_tags FROM journal_entries 
+         WHERE LOWER(entry) LIKE ?1 OR LOWER(tags) LIKE ?1 OR LOWER(ai_tags) LIKE ?1 
+         ORDER BY date DESC"
+    )?;
+    
+    let journal_iter = stmt.query_map([search_query], |row| {
+        Ok(JournalEntry {
+            id: row.get(0)?,
+            entry: row.get(1)?,
+            date: row.get(2)?,
+            tags: row.get(3)?,
+            sentiment: row.get(4)?,
+            ai_tags: row.get(5)?,
+        })
+    })?;
+
+    let mut entries = Vec::new();
+    for entry in journal_iter {
+        entries.push(entry?);
+    }
+    Ok(entries)
 }
 
 #[cfg(test)]

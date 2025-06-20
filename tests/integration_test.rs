@@ -30,26 +30,26 @@ fn test_database_initialization() {
     let db = db::Database::new(db_path).expect("Database::new should succeed.");
     assert!(Path::new(db_path).exists(), "Database file should be created.");
 
-    // Check that dev_logs table doesn't exist initially
-    let mut stmt = db.conn().prepare("SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name='dev_logs'").unwrap();
+    // Check that journal_entries table doesn't exist initially
+    let mut stmt = db.conn().prepare("SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name='journal_entries'").unwrap();
     let count: i64 = stmt.query_row([], |row| row.get(0)).unwrap();
-    assert_eq!(count, 0, "dev_logs table should not exist initially");
+    assert_eq!(count, 0, "journal_entries table should not exist initially");
 
     // Initialize the database
     db.initialize().expect("Failed to initialize database");
 
-    // Check that dev_logs table exists after initialization
-    let mut stmt = db.conn().prepare("SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name='dev_logs'").unwrap();
+    // Check that journal_entries table exists after initialization
+    let mut stmt = db.conn().prepare("SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name='journal_entries'").unwrap();
     let count: i64 = stmt.query_row([], |row| row.get(0)).unwrap();
-    assert_eq!(count, 1, "dev_logs table should exist after initialization");
+    assert_eq!(count, 1, "journal_entries table should exist after initialization");
 
-    // Test inserting data into dev_logs
-    db.conn().execute("INSERT INTO dev_logs (entry, tags) VALUES ('Test entry', 'test')", []).unwrap();
+    // Test inserting data into journal_entries
+    db.conn().execute("INSERT INTO journal_entries (entry, tags) VALUES ('Test entry', 'test')", []).unwrap();
 
     // Verify the data was inserted
-    let mut stmt = db.conn().prepare("SELECT COUNT(*) FROM dev_logs").unwrap();
+    let mut stmt = db.conn().prepare("SELECT COUNT(*) FROM journal_entries").unwrap();
     let count: i64 = stmt.query_row([], |row| row.get(0)).unwrap();
-    assert_eq!(count, 1, "Should have one entry in dev_logs table");
+    assert_eq!(count, 1, "Should have one entry in journal_entries table");
 
     // Clean up
     fs::remove_file(db_path).unwrap();

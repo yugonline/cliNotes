@@ -20,8 +20,8 @@ impl Database {
 
     /// Initialize database by creating tables if they dont exist.
     pub fn initialize(&self) -> Result<(), rusqlite::Error> {
-        // Check if dev_logs table exists
-        if !self.check_existence("table", "dev_logs")? {
+        // Check if journal_entries table exists
+        if !self.check_existence("table", "journal_entries")? {
             // Read the entire content of sql/init.sql file and execute it as a batch
             let init_sql_path = "sql/init.sql";
             let init_sql_content = fs::read_to_string(init_sql_path)
@@ -45,7 +45,7 @@ impl Database {
 
         // Verify all required tables and triggers exist
         let required_tables = vec![
-            "dev_logs",
+            "journal_entries",
             "languages",
             "code_snippets",
             "learning_notes",
