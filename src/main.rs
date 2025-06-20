@@ -59,12 +59,19 @@ fn main() {
     let db_path = "clidblocal.db";
 
     // Create a new database connection
-    let database = db::Database::new(db_path).expect("Failed to connect to the database ");
+    let database = match db::Database::new(db_path) {
+        Ok(db) => db,
+        Err(e) => {
+            eprintln!("❌ Error connecting to the database: {}", e);
+            std::process::exit(1);
+        }
+    };
 
     //Initialize the database ( create tables if they don't exist)
-    database
-        .initialize()
-        .expect("Failed to initialize the database");
+    if let Err(e) = database.initialize() {
+        eprintln!("❌ Error initializing database: {}", e);
+        std::process::exit(1);
+    }
 
 
     let opts: CliNotes = CliNotes::parse();
