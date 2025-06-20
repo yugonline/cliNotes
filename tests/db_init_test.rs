@@ -44,13 +44,13 @@ fn test_database_lifecycle() {
     // Now that the database is initialized, we can test a simple data insertion
     // to ensure the tables are usable.
     let insert_result = db.conn().execute(
-        "INSERT INTO dev_logs (entry, tags) VALUES (?1, ?2)",
+        "INSERT INTO journal_entries (entry, tags) VALUES (?1, ?2)",
         ["This is a test entry from an integration test.", "test, rust"],
     );
     println!("Insert result: {:?}", insert_result); 
     assert!(
         insert_result.is_ok(),
-        "Should be able to insert into dev_logs after initialization."
+        "Should be able to insert into journal_entries after initialization."
     );
     assert_eq!(
         insert_result.unwrap(),
@@ -61,12 +61,12 @@ fn test_database_lifecycle() {
     // Verify the data was actually inserted.
     let entry_count: i64 = db
         .conn()
-        .query_row("SELECT COUNT(*) FROM dev_logs", [], |row| row.get(0))
-        .expect("Should be able to query dev_logs.");
+        .query_row("SELECT COUNT(*) FROM journal_entries", [], |row| row.get(0))
+        .expect("Should be able to query journal_entries.");
 
     assert_eq!(
         entry_count, 1,
-        "dev_logs table should contain exactly one entry."
+        "journal_entries table should contain exactly one entry."
     );
 
     // The _guard will now go out of scope, and its Drop implementation will delete the file.

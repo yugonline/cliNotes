@@ -2,29 +2,37 @@ use chrono::prelude::*;
 use clap::Parser;
 
 #[derive(Parser, Debug)]
-pub struct DevLog {
+pub struct JournalEntry {
     #[clap(skip)]
     pub id: i64,
 
-    /// The content of the dev log entry
+    /// The content of the journal entry
     #[clap(long)]
     pub entry: String,
 
     #[clap(skip)]
     pub date: DateTime<Local>,
 
-    /// Relevant tags for your logs
+    /// Relevant tags for your journal entry
     #[clap(long, required = false)]
     pub tags: Option<String>,
+
+    #[clap(skip)]
+    pub sentiment: Option<String>,
+
+    #[clap(skip)]
+    pub ai_tags: Option<String>,
 }
 
-impl DevLog {
+impl JournalEntry {
     pub fn new(entry: String, tags: Option<String>) -> Self {
-        DevLog {
+        JournalEntry {
             id: -1,
             entry,
             date: Local::now(),
             tags,
+            sentiment: None,
+            ai_tags: None,
         }
     }
 
@@ -63,5 +71,5 @@ pub struct SnippetUsed {
     pub snippet_id: i64,
     pub description: String,
     pub learning_note_id: Option<i64>,
-    pub devlog_id: Option<i64>,
+    pub journal_entry_id: Option<i64>,
 }

@@ -1,6 +1,6 @@
 use rusqlite::Connection;
 use cli_notes::dao::{self, *};
-use cli_notes::models::{CodeSnippet, DevLog};
+use cli_notes::models::{CodeSnippet, JournalEntry};
 
 #[test]
 fn test_create_and_read_code_snippet() {
@@ -76,44 +76,60 @@ fn test_create_and_read_code_snippet() {
 }
 
 #[test]
-fn test_create_and_read_dev_log() {
+fn test_create_and_read_journal_entry() {
     // Create an in-memory database
     let conn = Connection::open_in_memory().unwrap();
 
     // Create the necessary tables
     conn.execute(
-        "CREATE TABLE dev_logs (
+        "CREATE TABLE journal_entries (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             entry TEXT NOT NULL,
             date DATETIME DEFAULT CURRENT_TIMESTAMP,
-            tags TEXT
+            tags TEXT,
+            sentiment TEXT,
+            ai_tags TEXT
         )",
         [],
     ).unwrap();
 
-    // Create a dev log
-    let mut devlog = DevLog::new(
-        String::from("Today I worked on the DAO module."),
+    // Create a journal entry
+    let mut journal_entry = JournalEntry::new(
+        String::from("Today I worked on the Rust DAO module and I'm excited about the progress!"),
         Some(String::from("rust, testing")),
     );
 
-    // Finalize the dev log (sets default values)
-    devlog.finalize();
+    // Finalize the journal entry (sets default values)
+    journal_entry.finalize();
 
-    // Create the dev log in the database
-    let log_id = dao::create_dev_log(&conn, &devlog).unwrap();
+    // Create the journal entry in the database
+    let entry_id = dao::create_journal_entry(&conn, &journal_entry).unwrap();
 
-    // Read the dev log back from the database
-    let read_log = dao::read_dev_log(&conn, log_id).unwrap().unwrap();
+    // Read the journal entry back from the database
+    let read_entry = dao::read_journal_entry(&conn, entry_id).unwrap().unwrap();
 
-    // Verify that the dev log was created correctly - account for preprocessed code
-    assert!(read_log.entry.starts_with("'''\n"));
-    assert!(read_log.entry.ends_with("\n'''"));
-    assert!(read_log.entry.contains("Today I worked on the DAO module."));
+    // Verify that the journal entry was created correctly - account for preprocessed code
+    assert!(read_entry.entry.starts_with("'''\n"));
+    assert!(read_entry.entry.ends_with("\n'''"));
+    assert!(read_entry.entry.contains("Today I worked on the Rust DAO module and I''m excited about the progress!"));
 
     // Check tags if present - now stored directly without preprocessing
-    if let Some(tags) = read_log.tags {
+    if let Some(tags) = read_entry.tags {
         assert!(tags == "rust, testing");
+    }
+
+    // Check AI-generated sentiment (should be positive due to "excited")
+    if let Some(sentiment) = read_entry.sentiment {
+        assert!(sentiment == "positive");
+    }
+
+    // Check AI-generated tags (should include "rust" from the content)
+    if let Some(ai_tags) = read_entry.ai_tags {
+        println!("AI tags: {}", ai_tags);
+        assert!(ai_tags.contains("rust"));
+    } else {
+        println!("No AI tags found");
+        panic!("Expected AI tags to be present");
     }
 }
 
