@@ -58,7 +58,7 @@ fn test_create_and_read_code_snippet() {
     // Update the code snippet
     read_snippet.full_code.push_str("\n// Updated code");
     // NOTE: This assumes the `update_code_snippet` bug I mentioned before is also fixed.
-    dao::update_code_snippet(db.conn(), &read_snippet).unwrap();
+    dao::update_code_snippet(db.conn(), &read_snippet, "rust").unwrap();
 
     // Read the updated code snippet
     let updated_snippet = dao::read_code_snippet(db.conn(), snippet_id).unwrap().unwrap();

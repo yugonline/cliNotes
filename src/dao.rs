@@ -140,8 +140,9 @@ pub fn read_code_snippet(
 pub fn update_code_snippet(
     conn: &Connection,
     snippet: &CodeSnippet,
+    lang_name: &str,
 ) -> Result<(), DaoError> {
-    let processed_code = preprocess_code(&snippet.full_code, "rust")
+    let processed_code = preprocess_code(&snippet.full_code, lang_name)
         .map_err(DaoError::PreprocessingError)?;
 
     conn.execute(
