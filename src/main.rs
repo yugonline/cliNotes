@@ -1,4 +1,5 @@
 use cli_notes::db;
+use std::path::PathBuf;
 use cli_notes::dao::{create_journal_entry, get_journal_entries_by_period, search_journal_entries, summarize_journal_entries};
 use cli_notes::models::JournalEntry;
 use clap::{Parser, Subcommand};
@@ -55,11 +56,25 @@ fn main() {
         println!("The current directory is {}", path.display());
     }
 
-    // Path to the SQLite database file
-    let db_path = "clidblocal.db";
+    // Replace the old db_path line with this block
+    let db_path: PathBuf = match dirs::config_dir() {
+        Some(mut path) => {
+            path.push("clinotes"); // Create a directory for our app
+            if !path.exists() {
+                std::fs::create_dir_all(&path).expect("Failed to create config directory");
+            }
+            path.push("clinotes.db"); // The final DB file path
+            path
+        }
+        None => {
+            // Fallback for rare cases where config dir can't be found
+            eprintln!("Warning: Could not find a config directory. Using current directory.");
+            PathBuf::from("clidblocal.db")
+        }
+    };
 
     // Create a new database connection
-    let database = match db::Database::new(db_path) {
+    let database = match db::Database::new(db_path.to_str().unwrap()) {
         Ok(db) => db,
         Err(e) => {
             eprintln!("❌ Error connecting to the database: {}", e);
