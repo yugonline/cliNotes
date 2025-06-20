@@ -6,12 +6,7 @@ use cli_notes::models::{CodeSnippet, JournalEntry};
 
 /// Creates an in-memory SQLite database and returns an initialized `Database` instance.
 fn setup_test_db() -> db::Database {
-    // Open an in-memory database connection.
-    let conn = rusqlite::Connection::open_in_memory()
-        .expect("Failed to create in-memory database for testing.");
-
-    // The Database struct now takes ownership of the connection.
-    let db_instance = db::Database { conn };
+    let db_instance = db::Database::new(":memory:").expect("Failed to create in-memory database for testing.");
 
     // Initialize the schema using the method on our instance.
     db_instance

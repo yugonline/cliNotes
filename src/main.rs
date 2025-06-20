@@ -80,7 +80,7 @@ fn main() {
             match command {
                 JournalCommands::Add { entry, tags } => {
                     let journal_entry = JournalEntry::new(entry, tags);
-                    match create_journal_entry(database.get_connection(), &journal_entry) {
+                    match create_journal_entry(database.conn(), &journal_entry) {
                         Ok(id) => {
                             println!("✅ Journal entry created successfully with ID: {}", id);
                             println!("🤖 AI analysis completed - sentiment and tags automatically generated!");
@@ -89,7 +89,7 @@ fn main() {
                     }
                 }
                 JournalCommands::Summarize { period } => {
-                    match get_journal_entries_by_period(database.get_connection(), &period) {
+                    match get_journal_entries_by_period(database.conn(), &period) {
                         Ok(entries) => {
                             if entries.is_empty() {
                                 println!("📝 No journal entries found for the {} period.", period);
@@ -111,7 +111,7 @@ fn main() {
                     }
                 }
                 JournalCommands::Insights { query } => {
-                    match search_journal_entries(database.get_connection(), &query) {
+                    match search_journal_entries(database.conn(), &query) {
                         Ok(entries) => {
                             if entries.is_empty() {
                                 println!("🔍 No entries found matching your query: '{}'", query);
