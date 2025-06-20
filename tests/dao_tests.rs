@@ -14,7 +14,7 @@ fn setup_initialized_db() -> rusqlite::Connection {
     // We need a temporary Database struct to call the initialize method.
     // The `initialize` method depends on the `sql/init.sql` file.
     // `cargo test` runs from the project root, so the path is correct.
-    let db_initializer = cli_notes::db::Database { conn: &conn };
+    let db_initializer = cli_notes::db::Database { conn: conn };
     db_initializer.initialize().expect("Database initialization failed in test setup.");
     
     // Return the connection, which now has the schema loaded.
