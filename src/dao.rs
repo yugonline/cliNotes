@@ -201,19 +201,14 @@ pub fn read_journal_entry(conn: &Connection, journal_entry_id: i64) -> Result<Op
 }
 
 pub fn get_journal_entries_by_period(conn: &Connection, period: &str) -> Result<Vec<JournalEntry>, DaoError> {
-    let date_filter = match period {
-        "week" => "date >= date('now', '-7 days')",
-        "month" => "date >= date('now', '-1 month')",
-        "year" => "date >= date('now', '-1 year')",
-        _ => "1=1", // Return all entries for invalid period
+    let query = match period {
+        "week" => "SELECT id, entry, date, tags, sentiment, ai_tags FROM journal_entries WHERE date >= date('now', '-7 days') ORDER BY date DESC",
+        "month" => "SELECT id, entry, date, tags, sentiment, ai_tags FROM journal_entries WHERE date >= date('now', '-1 month') ORDER BY date DESC",
+        "year" => "SELECT id, entry, date, tags, sentiment, ai_tags FROM journal_entries WHERE date >= date('now', '-1 year') ORDER BY date DESC",
+        _ => return Err(DaoError::PreprocessingError(format!("Invalid period: {}", period))),
     };
 
-    let query = format!(
-        "SELECT id, entry, date, tags, sentiment, ai_tags FROM journal_entries WHERE {} ORDER BY date DESC",
-        date_filter
-    );
-
-    let mut stmt = conn.prepare(&query)?;
+    let mut stmt = conn.prepare(query)?;
     let journal_iter = stmt.query_map([], |row| {
         Ok(JournalEntry {
             id: row.get(0)?,
