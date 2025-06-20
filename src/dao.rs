@@ -254,6 +254,48 @@ pub fn search_journal_entries(conn: &Connection, query: &str) -> Result<Vec<Jour
     Ok(entries)
 }
 
+
+
+use std::collections::HashSet;
+use crate::models::JournalSummary;
+
+pub fn summarize_journal_entries(entries: &Vec<JournalEntry>) -> JournalSummary {
+    let mut positive_count = 0;
+    let mut negative_count = 0;
+    let mut neutral_count = 0;
+    let mut all_ai_tags = Vec::new();
+
+    for entry in entries {
+        match entry.sentiment.as_deref() {
+            Some("positive") => positive_count += 1,
+            Some("negative") => negative_count += 1,
+            _ => neutral_count += 1,
+        }
+
+        if let Some(ai_tags) = &entry.ai_tags {
+            all_ai_tags.extend(ai_tags.split(',').map(|s| s.trim()));
+        }
+    }
+
+    let common_topics = all_ai_tags.into_iter()
+        .collect::<HashSet<_>>()
+        .into_iter()
+        .take(5)
+        .collect::<Vec<_>>()
+        .join(", ");
+
+    JournalSummary {
+        total_entries: entries.len(),
+        positive_count,
+        negative_count,
+        neutral_count,
+        common_topics,
+    }
+}
+
+
+
+
 #[cfg(test)]
 mod tests {
     use super::*; // This imports everything from the parent module (dao.rs)

@@ -1,5 +1,5 @@
 use cli_notes::db;
-use cli_notes::dao::{create_journal_entry, get_journal_entries_by_period, search_journal_entries};
+use cli_notes::dao::{create_journal_entry, get_journal_entries_by_period, search_journal_entries, summarize_journal_entries};
 use cli_notes::models::JournalEntry;
 use clap::{Parser, Subcommand};
 
@@ -97,32 +97,14 @@ fn main() {
                                 println!("📊 AI Summary for the past {}:", period);
                                 println!("Found {} entries", entries.len());
                                 
-                                // Simple AI summary generation
-                                let mut positive_count = 0;
-                                let mut negative_count = 0;
-                                let mut neutral_count = 0;
-                                let mut all_ai_tags = Vec::new();
-                                
-                                for entry in &entries {
-                                    match entry.sentiment.as_deref() {
-                                        Some("positive") => positive_count += 1,
-                                        Some("negative") => negative_count += 1,
-                                        _ => neutral_count += 1,
-                                    }
-                                    
-                                    if let Some(ai_tags) = &entry.ai_tags {
-                                        all_ai_tags.extend(ai_tags.split(',').map(|s| s.trim()));
-                                    }
-                                }
+                                let summary = summarize_journal_entries(&entries);
                                 
                                 println!("\n🎭 Sentiment Analysis:");
-                                println!("  Positive: {} entries", positive_count);
-                                println!("  Negative: {} entries", negative_count);
-                                println!("  Neutral: {} entries", neutral_count);
+                                println!("  Positive: {} entries", summary.positive_count);
+                                println!("  Negative: {} entries", summary.negative_count);
+                                println!("  Neutral: {} entries", summary.neutral_count);
                                 
-                                println!("\n🏷️  Most common topics: {}", 
-                                    all_ai_tags.into_iter().collect::<std::collections::HashSet<_>>()
-                                        .into_iter().take(5).collect::<Vec<_>>().join(", "));
+                                println!("\n🏷️  Most common topics: {}", summary.common_topics);
                             }
                         }
                         Err(e) => println!("❌ Error retrieving entries: {}", e),

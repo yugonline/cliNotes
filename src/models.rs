@@ -22,6 +22,18 @@ impl JournalEntry {
     }
 }
 
+
+#[derive(Debug)]
+pub struct JournalSummary {
+    pub total_entries: usize,
+    pub positive_count: usize,
+    pub negative_count: usize,
+    pub neutral_count: usize,
+    pub common_topics: String,
+}
+
+
+
 pub struct Language {
     pub id: i64,
     pub name: String,
