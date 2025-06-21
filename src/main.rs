@@ -1,4 +1,5 @@
 use cli_notes::db;
+use cli_notes::dao;
 use std::path::PathBuf;
 use cli_notes::dao::{create_journal_entry, get_journal_entries_by_period, search_journal_entries, summarize_journal_entries, create_code_snippet, read_code_snippet, create_learning_note};
 use cli_notes::models::{CodeSnippet, JournalEntry};
@@ -82,6 +83,11 @@ enum NoteCommands {
     Add {
         /// The path to the note file
         path: String,
+    },
+    /// Show a specific learning note's details by its ID
+    Show {
+        /// The ID of the note to show
+        id: i64,
     },
 }
 
@@ -234,6 +240,19 @@ fn main() {
                     match create_learning_note(database.conn(), &path) {
                         Ok(id) => println!("✅ Note linked successfully with ID: {}", id),
                         Err(e) => eprintln!("❌ Error linking note: {}", e),
+                    }
+                }
+                NoteCommands::Show { id } => {
+                    match dao::read_learning_note(database.conn(), id) {
+                        Ok(Some(note)) => {
+                            println!("Note ID: {}", note.id);
+                            println!("File Path: {}", note.file_path);
+                            println!("File Name: {}", note.file_name);
+                            println!("Created At: {}", note.created_at);
+                            println!("Updated At: {}", note.updated_at);
+                        }
+                        Ok(None) => println!("Note with ID {} not found.", id),
+                        Err(e) => eprintln!("Error reading note: {}", e),
                     }
                 }
             }
