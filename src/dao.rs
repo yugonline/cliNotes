@@ -2,6 +2,9 @@ use crate::models::{CodeSnippet, JournalEntry, JournalSummary};
 use rusqlite::{params, Connection, OptionalExtension};
 use std::fmt;
 
+use std::path::Path;
+
+
 // AI placeholder function - simulates AI processing
 pub fn call_journal_ai(entry_text: &str) -> (String, String) {
     // This is a placeholder implementation
@@ -328,6 +331,25 @@ pub fn generate_summary_for_period(conn: &Connection, period: &str) -> Result<Jo
         common_topics,
     })
 }
+
+
+
+pub fn create_learning_note(conn: &Connection, file_path: &str) -> Result<i64, DaoError> {
+    let path = Path::new(file_path);
+    let file_name = match path.file_name() {
+        Some(name) => name.to_str().unwrap_or("unknown_file"),
+        None => "unknown_file",
+    };
+
+    conn.execute(
+        "INSERT INTO learning_notes (file_path, file_name) VALUES (?, ?)",
+        params![file_path, file_name],
+    )?;
+    Ok(conn.last_insert_rowid())
+}
+
+
+
 
 
 

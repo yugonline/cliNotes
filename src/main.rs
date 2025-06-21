@@ -1,7 +1,7 @@
 use cli_notes::db;
 use std::path::PathBuf;
-use cli_notes::dao::{create_journal_entry, get_journal_entries_by_period, search_journal_entries, summarize_journal_entries};
-use cli_notes::models::JournalEntry;
+use cli_notes::dao::{create_journal_entry, get_journal_entries_by_period, search_journal_entries, summarize_journal_entries, create_code_snippet, read_code_snippet, create_learning_note};
+use cli_notes::models::{CodeSnippet, JournalEntry};
 use clap::{Parser, Subcommand};
 
 #[derive(Parser, Debug)]
@@ -22,7 +22,16 @@ enum Commands {
         #[command(subcommand)]
         command: JournalCommands,
     },
-    // Additional subcommands can be added here
+    /// Code snippet operations
+    Snippet {
+        #[command(subcommand)]
+        command: SnippetCommands,
+    },
+    /// Learning note operations
+    Note {
+        #[command(subcommand)]
+        command: NoteCommands,
+    },
 }
 
 #[derive(Subcommand, Debug)]
@@ -47,6 +56,37 @@ enum JournalCommands {
         query: String,
     },
 }
+
+#[derive(Subcommand, Debug)]
+enum SnippetCommands {
+    /// Add a new code snippet
+    Add {
+        /// The code content of the snippet
+        #[arg(long)]
+        code: String,
+        /// The programming language of the snippet (e.g., rust, python)
+        #[arg(long)]
+        lang: String,
+    },
+    /// Show a specific code snippet by its ID
+    Show {
+        /// The ID of the snippet to show
+        id: i64,
+    },
+}
+
+
+#[derive(Subcommand, Debug)]
+enum NoteCommands {
+    /// Add a new learning note by its file path
+    Add {
+        /// The path to the note file
+        path: String,
+    },
+}
+
+
+
 
 
 fn main() {
@@ -155,6 +195,45 @@ fn main() {
                             }
                         }
                         Err(e) => println!("❌ Error searching entries: {}", e),
+                    }
+                }
+            }
+        }
+        Some(Commands::Snippet { command }) => {
+            match command {
+                SnippetCommands::Add { code, lang } => {
+                    let new_snippet = CodeSnippet {
+                        id: 0, // ID is set by the database
+                        full_code: code,
+                        created_at: chrono::Local::now(),
+                        updated_at: chrono::Local::now(),
+                        language_id: 0, // This will be looked up by the DAO
+                    };
+                    match create_code_snippet(database.conn(), &new_snippet, &lang) {
+                        Ok(id) => println!("✅ Snippet created successfully with ID: {}", id),
+                        Err(e) => eprintln!("❌ Error creating snippet: {}", e),
+                    }
+                }
+                SnippetCommands::Show { id } => {
+                    match read_code_snippet(database.conn(), id) {
+                        Ok(Some(snippet)) => {
+                            println!("--- Snippet ID: {} ---", snippet.id);
+                            println!("Language ID: {}", snippet.language_id); // In a future task, we can look up the name
+                            println!("Created At: {}", snippet.created_at);
+                            println!("---\n{} \n---", snippet.full_code);
+                        }
+                        Ok(None) => println!("🔍 Snippet with ID {} not found.", id),
+                        Err(e) => eprintln!("❌ Error reading snippet: {}", e),
+                    }
+                }
+            }
+        }
+        Some(Commands::Note { command }) => {
+            match command {
+                NoteCommands::Add { path } => {
+                    match create_learning_note(database.conn(), &path) {
+                        Ok(id) => println!("✅ Note linked successfully with ID: {}", id),
+                        Err(e) => eprintln!("❌ Error linking note: {}", e),
                     }
                 }
             }
