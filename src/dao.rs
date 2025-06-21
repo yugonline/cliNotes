@@ -1,4 +1,4 @@
-use crate::models::{CodeSnippet, JournalEntry};
+use crate::models::{CodeSnippet, JournalEntry, JournalSummary};
 use rusqlite::{params, Connection, OptionalExtension};
 use std::fmt;
 
@@ -140,8 +140,9 @@ pub fn read_code_snippet(
 pub fn update_code_snippet(
     conn: &Connection,
     snippet: &CodeSnippet,
+    lang_name: &str,
 ) -> Result<(), DaoError> {
-    let processed_code = preprocess_code(&snippet.full_code, "rust")
+    let processed_code = preprocess_code(&snippet.full_code, lang_name)
         .map_err(DaoError::PreprocessingError)?;
 
     conn.execute(
@@ -252,7 +253,6 @@ pub fn search_journal_entries(conn: &Connection, query: &str) -> Result<Vec<Jour
 
 
 use std::collections::HashSet;
-use crate::models::JournalSummary;
 
 pub fn summarize_journal_entries(entries: &Vec<JournalEntry>) -> JournalSummary {
     let mut positive_count = 0;
@@ -287,6 +287,48 @@ pub fn summarize_journal_entries(entries: &Vec<JournalEntry>) -> JournalSummary 
         common_topics,
     }
 }
+
+pub fn generate_summary_for_period(conn: &Connection, period: &str) -> Result<JournalSummary, DaoError> {
+    let date_filter = match period {
+        "week" => "WHERE date >= date('now', '-7 days')",
+        "month" => "WHERE date >= date('now', '-1 month')",
+        "year" => "WHERE date >= date('now', '-1 year')",
+        _ => return Err(DaoError::PreprocessingError(format!("Invalid period: {}", period))),
+    };
+
+    let query = format!(
+        "SELECT
+            COALESCE(SUM(CASE WHEN sentiment = 'positive' THEN 1 ELSE 0 END), 0),
+            COALESCE(SUM(CASE WHEN sentiment = 'negative' THEN 1 ELSE 0 END), 0),
+            COALESCE(SUM(CASE WHEN sentiment = 'neutral'  THEN 1 ELSE 0 END), 0),
+            COUNT(*)
+        FROM journal_entries {}",
+        date_filter
+    );
+
+    let (positive_count, negative_count, neutral_count, total_entries) = conn.query_row(
+        &query,
+        [],
+        |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?, row.get(3)?))
+    )?;
+
+    // NOTE: Topic aggregation is complex in a single SQL query with SQLite.
+    // We will leave this part for a future task. For now, it returns a placeholder.
+    let common_topics = if total_entries > 0 {
+        "Topics require separate logic".to_string()
+    } else {
+        String::new()
+    };
+
+    Ok(JournalSummary {
+        total_entries,
+        positive_count,
+        negative_count,
+        neutral_count,
+        common_topics,
+    })
+}
+
 
 
 

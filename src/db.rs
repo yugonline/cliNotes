@@ -3,7 +3,7 @@ use std::fs;
 use std::path::Path;
 
 pub struct Database {
-    pub conn: Connection,
+    conn: Connection,
 }
 
 impl Database {
@@ -97,9 +97,5 @@ impl Database {
             |row| row.get(0),
         )?;
         Ok(count > 0)
-    }
-
-    pub fn get_connection(&self) -> &Connection {
-        &self.conn
     }
 }
