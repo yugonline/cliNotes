@@ -123,6 +123,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "async-trait"
+version = "0.1.76"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "531b97fb4cd3dfdce92c35dedbfdc1f0b9d8091c8ca943d6dae340ef5012d514"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn",
+]
+
+[[package]]
 name = "autocfg"
 version = "1.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -265,6 +276,7 @@ name = "cli_notes"
 version = "0.1.0"
 dependencies = [
  "assert_cmd",
+ "async-trait",
  "chrono",
  "clap",
  "dirs",
