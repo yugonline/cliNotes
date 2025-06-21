@@ -1,4 +1,5 @@
 use cli_notes::db;
+use cli_notes::interactive;
 use cli_notes::dao;
 use std::path::PathBuf;
 use cli_notes::dao::{create_journal_entry, get_journal_entries_by_period, search_journal_entries, summarize_journal_entries, create_code_snippet, read_code_snippet, create_learning_note};
@@ -266,7 +267,7 @@ fn main() {
     let opts: CliNotes = CliNotes::parse();
     match opts.command {
         Some(command) => handle_one_off_command(command, &database),
-        None => println!("Interactive mode starting..."),
+        None => interactive::run(&database),
     }
 
 
