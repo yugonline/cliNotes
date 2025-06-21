@@ -1,4 +1,4 @@
-use crate::models::{CodeSnippet, JournalEntry, JournalSummary};
+use crate::models::{CodeSnippet, JournalEntry, JournalSummary, LearningNote};
 use rusqlite::{params, Connection, OptionalExtension};
 use std::fmt;
 
@@ -97,10 +97,32 @@ pub fn language_exists(conn: &Connection, language_name: &str) -> Result<bool, D
     let count: i32 = conn.query_row(
         "SELECT COUNT(*) FROM languages WHERE name = ?",
         params![language_name],
+
         |row| row.get(0),
     )?;
     Ok(count > 0)
 }
+
+
+pub fn read_learning_note(conn: &Connection, note_id: i64) -> Result<Option<LearningNote>, DaoError> {
+    conn.query_row(
+        "SELECT id, file_path, file_name, created_at, updated_at FROM learning_notes WHERE id = ?1",
+        params![note_id],
+        |row| {
+            Ok(LearningNote {
+                id: row.get(0)?,
+                file_path: row.get(1)?,
+                file_name: row.get(2)?,
+                created_at: row.get(3)?,
+                updated_at: row.get(4)?,
+            })
+        },
+    )
+    .optional()
+    .map_err(DaoError::from)
+}
+
+
 
 // CRUD for Code Snippets
 pub fn create_code_snippet(
