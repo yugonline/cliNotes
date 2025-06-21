@@ -2,6 +2,7 @@
 use rustyline::error::ReadlineError;
 use rustyline::Editor;
 use crate::db;
+use crate::output;
 
 mod parser;
 
@@ -66,7 +67,7 @@ pub fn run(database: &db::Database) {
                             },
                             parser::InteractiveCommand::ChangeMode(new_mode) => {
                                 state.mode = new_mode;
-                                println!("Switched to {} mode.", state.mode);
+                                output::display_success(&format!("Switched to {} mode.", state.mode));
                             },
                             parser::InteractiveCommand::Text(text) => {
                                 println!("Command not yet implemented: {}", text);

@@ -4,3 +4,6 @@ hello
 \\snippet
 \\journal
 \\quit
+\\snippet
+\\journal
+\\quit
