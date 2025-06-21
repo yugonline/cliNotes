@@ -22,7 +22,16 @@ enum Commands {
         #[command(subcommand)]
         command: JournalCommands,
     },
-    // Additional subcommands can be added here
+    /// Code snippet operations
+    Snippet {
+        #[command(subcommand)]
+        command: SnippetCommands,
+    },
+    /// Learning note operations
+    Note {
+        #[command(subcommand)]
+        command: NoteCommands,
+    },
 }
 
 #[derive(Subcommand, Debug)]
@@ -65,6 +74,18 @@ enum SnippetCommands {
         id: i64,
     },
 }
+
+
+#[derive(Subcommand, Debug)]
+enum NoteCommands {
+    /// Add a new learning note by its file path
+    Add {
+        /// The path to the note file
+        path: String,
+    },
+}
+
+
 
 
 
@@ -177,6 +198,12 @@ fn main() {
                     }
                 }
             }
+        }
+        Some(Commands::Snippet { command }) => {
+            todo!()
+        }
+        Some(Commands::Note { command }) => {
+            todo!()
         }
         None => {
             println!("---------------------------------------------------");
