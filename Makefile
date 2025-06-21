@@ -13,7 +13,7 @@ init-db:
 
 # Run the built binary
 start:
-	target/debug/CliNotes
+	target/debug/cli_notes
 
 clean:
 	cargo clean

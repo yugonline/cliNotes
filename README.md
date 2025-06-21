@@ -45,10 +45,10 @@ The AI Journal is the flagship feature of CliNotes, providing intelligent analys
 - **Sentiment Trends**: Track how your feelings about coding and projects evolve over time
 - **Topic Analysis**: Understand what subjects you've been most engaged with
 
-### Natural Language Insights
-- **Query Your Journal**: Ask questions like "How do I feel about React?" or "What challenges did I face last month?"
-- **Pattern Recognition**: AI identifies recurring themes and emotional patterns in your entries
-- **Contextual Search**: Find entries not just by keywords, but by emotional context and meaning
+### Keyword-based Insights
+- **Query Your Journal**: Search your journal entries using keywords.
+- **Pattern Recognition**: AI identifies recurring themes and emotional patterns in your entries based on keywords.
+- **Contextual Search**: Find entries by keywords, sentiment, or topics.
 
 ## Design Principles
 
@@ -99,7 +99,7 @@ Welcome to CliNotes - AI-Powered Journaling!
 
 💡 Try: 'cargo run -- journal add "Today I learned Rust!"'
 💡 Try: 'cargo run -- journal summarize --period week'
-💡 Try: 'cargo run -- journal insights "How do I feel about coding?"'
+💡 Try: 'cargo run -- journal insights "Rust"'
 ```
 
 ## Command Examples
@@ -132,12 +132,8 @@ cargo run -- journal summarize --period year
 
 ### AI Insights and Search
 ```bash
-# Ask questions about your journal
-cargo run -- journal insights "How have I felt about my React projects?"
-cargo run -- journal insights "What challenges did I face last month?"
-cargo run -- journal insights "When was I most productive?"
-
-# Search by keywords, sentiment, or topics
+# Search your journal by keywords
+cargo run -- journal insights "Rust"
 cargo run -- journal insights "debugging"
 cargo run -- journal insights "learning new technologies"
 ```
