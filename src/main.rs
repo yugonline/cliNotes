@@ -48,6 +48,25 @@ enum JournalCommands {
     },
 }
 
+#[derive(Subcommand, Debug)]
+enum SnippetCommands {
+    /// Add a new code snippet
+    Add {
+        /// The code content of the snippet
+        #[arg(long)]
+        code: String,
+        /// The programming language of the snippet (e.g., rust, python)
+        #[arg(long)]
+        lang: String,
+    },
+    /// Show a specific code snippet by its ID
+    Show {
+        /// The ID of the snippet to show
+        id: i64,
+    },
+}
+
+
 
 fn main() {
     use std::env;
