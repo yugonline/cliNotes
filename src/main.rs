@@ -95,49 +95,11 @@ enum NoteCommands {
 
 
 
-fn main() {
-    use std::env;
-
-    if let Ok(path) = env::current_dir() {
-        println!("The current directory is {}", path.display());
-    }
-
-    // Replace the old db_path line with this block
-    let db_path: PathBuf = match dirs::config_dir() {
-        Some(mut path) => {
-            path.push("clinotes"); // Create a directory for our app
-            if !path.exists() {
-                std::fs::create_dir_all(&path).expect("Failed to create config directory");
-            }
-            path.push("clinotes.db"); // The final DB file path
-            path
-        }
-        None => {
-            // Fallback for rare cases where config dir can't be found
-            eprintln!("Warning: Could not find a config directory. Using current directory.");
-            PathBuf::from("clidblocal.db")
-        }
-    };
-
-    // Create a new database connection
-    let database = match db::Database::new(db_path.to_str().unwrap()) {
-        Ok(db) => db,
-        Err(e) => {
-            eprintln!("❌ Error connecting to the database: {}", e);
-            std::process::exit(1);
-        }
-    };
-
-    //Initialize the database ( create tables if they don't exist)
-    if let Err(e) = database.initialize() {
-        eprintln!("❌ Error initializing database: {}", e);
-        std::process::exit(1);
-    }
 
 
-    let opts: CliNotes = CliNotes::parse();
-    match opts.command {
-        Some(Commands::Journal { command }) => {
+fn handle_one_off_command(command: Commands, database: &db::Database) {
+    match command {
+        Commands::Journal { command } => {
             match command {
                 JournalCommands::Add { entry, tags } => {
                     let journal_entry = JournalEntry::new(entry, tags);
@@ -205,7 +167,7 @@ fn main() {
                 }
             }
         }
-        Some(Commands::Snippet { command }) => {
+        Commands::Snippet { command } => {
             match command {
                 SnippetCommands::Add { code, lang } => {
                     let new_snippet = CodeSnippet {
@@ -234,7 +196,7 @@ fn main() {
                 }
             }
         }
-        Some(Commands::Note { command }) => {
+        Commands::Note { command } => {
             match command {
                 NoteCommands::Add { path } => {
                     match create_learning_note(database.conn(), &path) {
@@ -257,31 +219,56 @@ fn main() {
                 }
             }
         }
-        None => {
-            println!("---------------------------------------------------");
-            println!(" ██████ ██      ██ ███    ██  ██████  ████████ ███████ ███████ ");
-            println!("██      ██      ██ ████   ██ ██    ██    ██    ██      ██      ");
-            println!("██      ██      ██ ██ ██  ██ ██    ██    ██    █████   ███████ ");
-            println!("██      ██      ██ ██  ██ ██ ██    ██    ██    ██           ██ ");
-            println!(" ██████ ███████ ██ ██   ████  ██████     ██    ███████ ███████ ");
-            println!("                                                                ");
-            println!("                                                                ");
-            println!("");
-            println!("Welcome to CliNotes - AI-Powered Journaling!");
-            println!("");
-            println!("🤖 AI Journal Features:");
-            println!("[1] Add Journal Entry (with AI sentiment analysis & auto-tagging)");
-            println!("[2] AI Summary (weekly/monthly insights)");
-            println!("[3] AI Insights (ask questions about your entries)");
-            println!("[4] View Learning Notes (Latest 3 entries)");
-            println!("[5] View Code Snippets (Last 5 entries)");
-            println!("[6] Add new Code Snippet");
-            println!("[7] Exit");
-            println!("");
-            println!("💡 Try: 'cargo run -- journal add \"Today I learned Rust!\"'");
-            println!("💡 Try: 'cargo run -- journal summarize --period week'");
-            println!("💡 Try: 'cargo run -- journal insights \"How do I feel about coding?\"'");
-            println!("---------------------------------------------------");
-        }
     }
 }
+
+
+fn main() {
+    use std::env;
+
+    if let Ok(path) = env::current_dir() {
+        println!("The current directory is {}", path.display());
+    }
+
+    // Replace the old db_path line with this block
+    let db_path: PathBuf = match dirs::config_dir() {
+        Some(mut path) => {
+            path.push("clinotes"); // Create a directory for our app
+            if !path.exists() {
+                std::fs::create_dir_all(&path).expect("Failed to create config directory");
+            }
+            path.push("clinotes.db"); // The final DB file path
+            path
+        }
+        None => {
+            // Fallback for rare cases where config dir can't be found
+            eprintln!("Warning: Could not find a config directory. Using current directory.");
+            PathBuf::from("clidblocal.db")
+        }
+    };
+
+    // Create a new database connection
+    let database = match db::Database::new(db_path.to_str().unwrap()) {
+        Ok(db) => db,
+        Err(e) => {
+            eprintln!("❌ Error connecting to the database: {}", e);
+            std::process::exit(1);
+        }
+    };
+
+    //Initialize the database ( create tables if they don't exist)
+    if let Err(e) = database.initialize() {
+        eprintln!("❌ Error initializing database: {}", e);
+        std::process::exit(1);
+    }
+
+
+    let opts: CliNotes = CliNotes::parse();
+    match opts.command {
+        Some(command) => handle_one_off_command(command, &database),
+        None => println!("Interactive mode starting..."),
+    }
+
+
+}
+
