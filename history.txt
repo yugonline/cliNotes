@@ -1,3 +1,6 @@
 #V2
 hello
 \\quit
+\\snippet
+\\journal
+\\quit

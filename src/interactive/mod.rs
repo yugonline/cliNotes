@@ -3,6 +3,8 @@ use rustyline::error::ReadlineError;
 use rustyline::Editor;
 use crate::db;
 
+mod parser;
+
 
 
 #[derive(Debug, PartialEq)]
@@ -56,10 +58,25 @@ pub fn run(database: &db::Database) {
         match readline {
             Ok(line) => {
                 rl.add_history_entry(line.as_str());
-                if line == "\\quit" {
-                    break;
+                match parser::parse_input(&line) {
+                    Ok(command) => {
+                        match command {
+                            parser::InteractiveCommand::Quit => {
+                                break;
+                            },
+                            parser::InteractiveCommand::ChangeMode(new_mode) => {
+                                state.mode = new_mode;
+                                println!("Switched to {} mode.", state.mode);
+                            },
+                            parser::InteractiveCommand::Text(text) => {
+                                println!("Command not yet implemented: {}", text);
+                            },
+                        }
+                    },
+                    Err(e) => {
+                        println!("Error parsing command: {}", e);
+                    }
                 }
-                println!("You typed: {}", line);
             },
             Err(ReadlineError::Interrupted) => {
                 println!("CTRL-C");
