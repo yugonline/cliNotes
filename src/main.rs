@@ -1,7 +1,7 @@
 use cli_notes::db;
 use std::path::PathBuf;
-use cli_notes::dao::{create_journal_entry, get_journal_entries_by_period, search_journal_entries, summarize_journal_entries};
-use cli_notes::models::JournalEntry;
+use cli_notes::dao::{create_journal_entry, get_journal_entries_by_period, search_journal_entries, summarize_journal_entries, create_code_snippet, read_code_snippet};
+use cli_notes::models::{CodeSnippet, JournalEntry};
 use clap::{Parser, Subcommand};
 
 #[derive(Parser, Debug)]
@@ -200,7 +200,33 @@ fn main() {
             }
         }
         Some(Commands::Snippet { command }) => {
-            todo!()
+            match command {
+                SnippetCommands::Add { code, lang } => {
+                    let new_snippet = CodeSnippet {
+                        id: 0, // ID is set by the database
+                        full_code: code,
+                        created_at: chrono::Local::now(),
+                        updated_at: chrono::Local::now(),
+                        language_id: 0, // This will be looked up by the DAO
+                    };
+                    match create_code_snippet(database.conn(), &new_snippet, &lang) {
+                        Ok(id) => println!("✅ Snippet created successfully with ID: {}", id),
+                        Err(e) => eprintln!("❌ Error creating snippet: {}", e),
+                    }
+                }
+                SnippetCommands::Show { id } => {
+                    match read_code_snippet(database.conn(), id) {
+                        Ok(Some(snippet)) => {
+                            println!("--- Snippet ID: {} ---", snippet.id);
+                            println!("Language ID: {}", snippet.language_id); // In a future task, we can look up the name
+                            println!("Created At: {}", snippet.created_at);
+                            println!("---\n{} \n---", snippet.full_code);
+                        }
+                        Ok(None) => println!("🔍 Snippet with ID {} not found.", id),
+                        Err(e) => eprintln!("❌ Error reading snippet: {}", e),
+                    }
+                }
+            }
         }
         Some(Commands::Note { command }) => {
             todo!()
