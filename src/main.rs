@@ -1,6 +1,6 @@
 use cli_notes::db;
 use std::path::PathBuf;
-use cli_notes::dao::{create_journal_entry, get_journal_entries_by_period, search_journal_entries, summarize_journal_entries, create_code_snippet, read_code_snippet};
+use cli_notes::dao::{create_journal_entry, get_journal_entries_by_period, search_journal_entries, summarize_journal_entries, create_code_snippet, read_code_snippet, create_learning_note};
 use cli_notes::models::{CodeSnippet, JournalEntry};
 use clap::{Parser, Subcommand};
 
@@ -229,7 +229,14 @@ fn main() {
             }
         }
         Some(Commands::Note { command }) => {
-            todo!()
+            match command {
+                NoteCommands::Add { path } => {
+                    match create_learning_note(database.conn(), &path) {
+                        Ok(id) => println!("✅ Note linked successfully with ID: {}", id),
+                        Err(e) => eprintln!("❌ Error linking note: {}", e),
+                    }
+                }
+            }
         }
         None => {
             println!("---------------------------------------------------");
