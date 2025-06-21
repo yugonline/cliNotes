@@ -4,6 +4,10 @@ use rustyline::Editor;
 use crate::db;
 use crate::output;
 
+use crate::dao;
+use crate::models::{JournalEntry};
+
+
 mod parser;
 
 
@@ -59,7 +63,7 @@ pub fn run(database: &db::Database) {
         match readline {
             Ok(line) => {
                 rl.add_history_entry(line.as_str());
-                match parser::parse_input(&line) {
+                match parser::parse_input(&line, &state) {
                     Ok(command) => {
                         match command {
                             parser::InteractiveCommand::Quit => {
@@ -68,6 +72,13 @@ pub fn run(database: &db::Database) {
                             parser::InteractiveCommand::ChangeMode(new_mode) => {
                                 state.mode = new_mode;
                                 output::display_success(&format!("Switched to {} mode.", state.mode));
+                            },
+                            parser::InteractiveCommand::AddJournal(content) => {
+                                let journal_entry = JournalEntry::new(content, None); // Assuming no tags for now
+                                match dao::create_journal_entry(database.conn(), &journal_entry) {
+                                    Ok(id) => output::display_success(&format!("Journal entry created successfully with ID: {}", id)),
+                                    Err(e) => eprintln!("❌ Error creating journal entry: {}", e),
+                                }
                             },
                             parser::InteractiveCommand::Text(text) => {
                                 println!("Command not yet implemented: {}", text);

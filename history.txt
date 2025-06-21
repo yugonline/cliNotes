@@ -7,3 +7,5 @@ hello
 \\snippet
 \\journal
 \\quit
+add this is a test
+\\quit
