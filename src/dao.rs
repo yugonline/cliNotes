@@ -1,45 +1,58 @@
-use crate::models::{CodeSnippet, JournalEntry, JournalSummary, LearningNote};
+use crate::models::{CodeSnippet, JournalEntry, JournalSummary, LearningNote, MoodEntry};
 use rusqlite::{params, Connection, OptionalExtension};
 use std::fmt;
 
 use std::path::Path;
 
-
 // AI placeholder function - simulates AI processing
 pub fn call_journal_ai(entry_text: &str) -> (String, String) {
     // This is a placeholder implementation
     // In a real implementation, this would call an external AI service
-    
+
     // Simple sentiment analysis based on keywords
-    let sentiment = if entry_text.to_lowercase().contains("happy") || 
-                      entry_text.to_lowercase().contains("good") || 
-                      entry_text.to_lowercase().contains("great") ||
-                      entry_text.to_lowercase().contains("excited") {
+    let sentiment = if entry_text.to_lowercase().contains("happy")
+        || entry_text.to_lowercase().contains("good")
+        || entry_text.to_lowercase().contains("great")
+        || entry_text.to_lowercase().contains("excited")
+    {
         "positive".to_string()
-    } else if entry_text.to_lowercase().contains("sad") || 
-              entry_text.to_lowercase().contains("bad") || 
-              entry_text.to_lowercase().contains("terrible") ||
-              entry_text.to_lowercase().contains("frustrated") {
+    } else if entry_text.to_lowercase().contains("sad")
+        || entry_text.to_lowercase().contains("bad")
+        || entry_text.to_lowercase().contains("terrible")
+        || entry_text.to_lowercase().contains("frustrated")
+    {
         "negative".to_string()
     } else {
         "neutral".to_string()
     };
-    
+
     // Simple tag generation based on common programming keywords
     let mut ai_tags = Vec::new();
-    if entry_text.to_lowercase().contains("rust") { ai_tags.push("rust"); }
-    if entry_text.to_lowercase().contains("project") { ai_tags.push("project"); }
-    if entry_text.to_lowercase().contains("bug") { ai_tags.push("debugging"); }
-    if entry_text.to_lowercase().contains("learn") { ai_tags.push("learning"); }
-    if entry_text.to_lowercase().contains("code") { ai_tags.push("coding"); }
-    if entry_text.to_lowercase().contains("work") { ai_tags.push("work"); }
-    
+    if entry_text.to_lowercase().contains("rust") {
+        ai_tags.push("rust");
+    }
+    if entry_text.to_lowercase().contains("project") {
+        ai_tags.push("project");
+    }
+    if entry_text.to_lowercase().contains("bug") {
+        ai_tags.push("debugging");
+    }
+    if entry_text.to_lowercase().contains("learn") {
+        ai_tags.push("learning");
+    }
+    if entry_text.to_lowercase().contains("code") {
+        ai_tags.push("coding");
+    }
+    if entry_text.to_lowercase().contains("work") {
+        ai_tags.push("work");
+    }
+
     let ai_tags_string = if ai_tags.is_empty() {
         "general".to_string()
     } else {
         ai_tags.join(",")
     };
-    
+
     (sentiment, ai_tags_string)
 }
 
@@ -82,7 +95,8 @@ pub fn get_language_from_id(conn: &Connection, language_id: i64) -> Result<Strin
         "SELECT name FROM languages WHERE id = ?",
         params![language_id],
         |row| Ok(row.get::<_, String>(0)?),
-    ).map_err(DaoError::from)
+    )
+    .map_err(DaoError::from)
 }
 
 pub fn get_language_id_from_name(conn: &Connection, lang_name: &str) -> Result<i64, DaoError> {
@@ -90,21 +104,23 @@ pub fn get_language_id_from_name(conn: &Connection, lang_name: &str) -> Result<i
         "SELECT id FROM languages WHERE name = ?",
         params![lang_name],
         |row| Ok(row.get::<_, i64>(0)?),
-    ).map_err(DaoError::from)
+    )
+    .map_err(DaoError::from)
 }
 
 pub fn language_exists(conn: &Connection, language_name: &str) -> Result<bool, DaoError> {
     let count: i32 = conn.query_row(
         "SELECT COUNT(*) FROM languages WHERE name = ?",
         params![language_name],
-
         |row| row.get(0),
     )?;
     Ok(count > 0)
 }
 
-
-pub fn read_learning_note(conn: &Connection, note_id: i64) -> Result<Option<LearningNote>, DaoError> {
+pub fn read_learning_note(
+    conn: &Connection,
+    note_id: i64,
+) -> Result<Option<LearningNote>, DaoError> {
     conn.query_row(
         "SELECT id, file_path, file_name, created_at, updated_at FROM learning_notes WHERE id = ?1",
         params![note_id],
@@ -122,8 +138,6 @@ pub fn read_learning_note(conn: &Connection, note_id: i64) -> Result<Option<Lear
     .map_err(DaoError::from)
 }
 
-
-
 // CRUD for Code Snippets
 pub fn create_code_snippet(
     conn: &Connection,
@@ -132,8 +146,8 @@ pub fn create_code_snippet(
 ) -> Result<i64, DaoError> {
     let lang_id = get_language_id_from_name(conn, lang_name)?;
 
-    let processed_code = preprocess_code(&snippet.full_code, lang_name)
-        .map_err(DaoError::PreprocessingError)?;
+    let processed_code =
+        preprocess_code(&snippet.full_code, lang_name).map_err(DaoError::PreprocessingError)?;
 
     conn.execute(
         "INSERT INTO code_snippets (full_code, language_id) VALUES (?, ?)",
@@ -167,8 +181,8 @@ pub fn update_code_snippet(
     snippet: &CodeSnippet,
     lang_name: &str,
 ) -> Result<(), DaoError> {
-    let processed_code = preprocess_code(&snippet.full_code, lang_name)
-        .map_err(DaoError::PreprocessingError)?;
+    let processed_code =
+        preprocess_code(&snippet.full_code, lang_name).map_err(DaoError::PreprocessingError)?;
 
     conn.execute(
         "UPDATE code_snippets SET full_code = ?, language_id = ? WHERE id = ?",
@@ -185,12 +199,46 @@ pub fn delete_code_snippet(conn: &Connection, snippet_id: i64) -> Result<(), Dao
     Ok(())
 }
 
+pub fn create_mood_entry(
+    conn: &Connection,
+    mood: &str,
+    note: Option<&str>,
+) -> Result<i64, DaoError> {
+    conn.execute(
+        "INSERT INTO mood_entries (mood, note) VALUES (?, ?)",
+        params![mood, note],
+    )?;
+    Ok(conn.last_insert_rowid())
+}
+
+pub fn get_mood_entries(conn: &Connection) -> Result<Vec<MoodEntry>, DaoError> {
+    let mut stmt =
+        conn.prepare("SELECT id, mood, note, date FROM mood_entries ORDER BY date DESC")?;
+    let mood_iter = stmt.query_map([], |row| {
+        Ok(MoodEntry {
+            id: row.get(0)?,
+            mood: row.get(1)?,
+            note: row.get(2)?,
+            date: row.get(3)?,
+        })
+    })?;
+
+    let mut entries = Vec::new();
+    for entry in mood_iter {
+        entries.push(entry?);
+    }
+    Ok(entries)
+}
+
 //CRUD for journal entries
-pub fn create_journal_entry(conn: &Connection, journal_entry: &JournalEntry) -> Result<i64, DaoError> {
+pub fn create_journal_entry(
+    conn: &Connection,
+    journal_entry: &JournalEntry,
+) -> Result<i64, DaoError> {
     // Use the tag string directly from the journal_entry struct
     let tags = match &journal_entry.tags {
         None => String::new(),
-        Some(tag) => tag.clone(),  // Just clone the tag without preprocessing
+        Some(tag) => tag.clone(), // Just clone the tag without preprocessing
     };
 
     // Call AI function to get sentiment and AI tags
@@ -203,7 +251,10 @@ pub fn create_journal_entry(conn: &Connection, journal_entry: &JournalEntry) -> 
     Ok(conn.last_insert_rowid())
 }
 
-pub fn read_journal_entry(conn: &Connection, journal_entry_id: i64) -> Result<Option<JournalEntry>, DaoError> {
+pub fn read_journal_entry(
+    conn: &Connection,
+    journal_entry_id: i64,
+) -> Result<Option<JournalEntry>, DaoError> {
     conn.query_row(
         "SELECT id, entry, date, tags, sentiment, ai_tags FROM journal_entries WHERE id = ?1",
         params![journal_entry_id],
@@ -218,10 +269,14 @@ pub fn read_journal_entry(conn: &Connection, journal_entry_id: i64) -> Result<Op
             })
         },
     )
-    .optional().map_err(DaoError::from)
+    .optional()
+    .map_err(DaoError::from)
 }
 
-pub fn get_journal_entries_by_period(conn: &Connection, period: &str) -> Result<Vec<JournalEntry>, DaoError> {
+pub fn get_journal_entries_by_period(
+    conn: &Connection,
+    period: &str,
+) -> Result<Vec<JournalEntry>, DaoError> {
     let query = match period {
         "week" => "SELECT id, entry, date, tags, sentiment, ai_tags FROM journal_entries WHERE date >= date('now', '-7 days') ORDER BY date DESC",
         "month" => "SELECT id, entry, date, tags, sentiment, ai_tags FROM journal_entries WHERE date >= date('now', '-1 month') ORDER BY date DESC",
@@ -248,15 +303,18 @@ pub fn get_journal_entries_by_period(conn: &Connection, period: &str) -> Result<
     Ok(entries)
 }
 
-pub fn search_journal_entries(conn: &Connection, query: &str) -> Result<Vec<JournalEntry>, DaoError> {
+pub fn search_journal_entries(
+    conn: &Connection,
+    query: &str,
+) -> Result<Vec<JournalEntry>, DaoError> {
     let search_query = format!("%{}%", query.to_lowercase());
-    
+
     let mut stmt = conn.prepare(
         "SELECT id, entry, date, tags, sentiment, ai_tags FROM journal_entries 
          WHERE LOWER(entry) LIKE ?1 OR LOWER(tags) LIKE ?1 OR LOWER(ai_tags) LIKE ?1 
-         ORDER BY date DESC"
+         ORDER BY date DESC",
     )?;
-    
+
     let journal_iter = stmt.query_map([search_query], |row| {
         Ok(JournalEntry {
             id: row.get(0)?,
@@ -274,8 +332,6 @@ pub fn search_journal_entries(conn: &Connection, query: &str) -> Result<Vec<Jour
     }
     Ok(entries)
 }
-
-
 
 use std::collections::HashSet;
 
@@ -297,7 +353,8 @@ pub fn summarize_journal_entries(entries: &Vec<JournalEntry>) -> JournalSummary 
         }
     }
 
-    let common_topics = all_ai_tags.into_iter()
+    let common_topics = all_ai_tags
+        .into_iter()
         .collect::<HashSet<_>>()
         .into_iter()
         .take(5)
@@ -313,12 +370,20 @@ pub fn summarize_journal_entries(entries: &Vec<JournalEntry>) -> JournalSummary 
     }
 }
 
-pub fn generate_summary_for_period(conn: &Connection, period: &str) -> Result<JournalSummary, DaoError> {
+pub fn generate_summary_for_period(
+    conn: &Connection,
+    period: &str,
+) -> Result<JournalSummary, DaoError> {
     let date_filter = match period {
         "week" => "WHERE date >= date('now', '-7 days')",
         "month" => "WHERE date >= date('now', '-1 month')",
         "year" => "WHERE date >= date('now', '-1 year')",
-        _ => return Err(DaoError::PreprocessingError(format!("Invalid period: {}", period))),
+        _ => {
+            return Err(DaoError::PreprocessingError(format!(
+                "Invalid period: {}",
+                period
+            )))
+        }
     };
 
     let query = format!(
@@ -331,11 +396,10 @@ pub fn generate_summary_for_period(conn: &Connection, period: &str) -> Result<Jo
         date_filter
     );
 
-    let (positive_count, negative_count, neutral_count, total_entries) = conn.query_row(
-        &query,
-        [],
-        |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?, row.get(3)?))
-    )?;
+    let (positive_count, negative_count, neutral_count, total_entries) =
+        conn.query_row(&query, [], |row| {
+            Ok((row.get(0)?, row.get(1)?, row.get(2)?, row.get(3)?))
+        })?;
 
     // NOTE: Topic aggregation is complex in a single SQL query with SQLite.
     // We will leave this part for a future task. For now, it returns a placeholder.
@@ -354,8 +418,6 @@ pub fn generate_summary_for_period(conn: &Connection, period: &str) -> Result<Jo
     })
 }
 
-
-
 pub fn create_learning_note(conn: &Connection, file_path: &str) -> Result<i64, DaoError> {
     let path = Path::new(file_path);
     let file_name = match path.file_name() {
@@ -369,13 +431,6 @@ pub fn create_learning_note(conn: &Connection, file_path: &str) -> Result<i64, D
     )?;
     Ok(conn.last_insert_rowid())
 }
-
-
-
-
-
-
-
 
 #[cfg(test)]
 mod tests {
