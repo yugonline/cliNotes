@@ -22,6 +22,12 @@ impl JournalEntry {
     }
 }
 
+pub struct MoodEntry {
+    pub id: i64,
+    pub mood: String,
+    pub note: Option<String>,
+    pub date: DateTime<Local>,
+}
 
 #[derive(Debug)]
 pub struct JournalSummary {
@@ -31,8 +37,6 @@ pub struct JournalSummary {
     pub neutral_count: usize,
     pub common_topics: String,
 }
-
-
 
 pub struct Language {
     pub id: i64,

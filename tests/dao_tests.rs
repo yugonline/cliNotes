@@ -6,7 +6,8 @@ use cli_notes::models::{CodeSnippet, JournalEntry};
 
 /// Creates an in-memory SQLite database and returns an initialized `Database` instance.
 fn setup_test_db() -> db::Database {
-    let db_instance = db::Database::new(":memory:").expect("Failed to create in-memory database for testing.");
+    let db_instance =
+        db::Database::new(":memory:").expect("Failed to create in-memory database for testing.");
 
     // Initialize the schema using the method on our instance.
     db_instance
@@ -40,12 +41,16 @@ fn test_create_and_read_code_snippet() {
     let snippet_id = dao::create_code_snippet(db.conn(), &snippet, "rust").unwrap();
 
     // Read the code snippet back from the database
-    let mut read_snippet = dao::read_code_snippet(db.conn(), snippet_id).unwrap().unwrap();
+    let mut read_snippet = dao::read_code_snippet(db.conn(), snippet_id)
+        .unwrap()
+        .unwrap();
 
     // Verify that the code snippet was created correctly - account for preprocessed code
     assert!(read_snippet.full_code.starts_with("'''\n"));
     assert!(read_snippet.full_code.ends_with("\n'''"));
-    assert!(read_snippet.full_code.contains("fn main() { println!(\"Hello, world!\"); }"));
+    assert!(read_snippet
+        .full_code
+        .contains("fn main() { println!(\"Hello, world!\"); }"));
 
     // Verify language_id
     assert_eq!(read_snippet.language_id, rust_lang_id);
@@ -56,8 +61,12 @@ fn test_create_and_read_code_snippet() {
     dao::update_code_snippet(db.conn(), &read_snippet, "rust").unwrap();
 
     // Read the updated code snippet
-    let updated_snippet = dao::read_code_snippet(db.conn(), snippet_id).unwrap().unwrap();
-    assert!(updated_snippet.full_code.ends_with("\n// Updated code\n'''"));
+    let updated_snippet = dao::read_code_snippet(db.conn(), snippet_id)
+        .unwrap()
+        .unwrap();
+    assert!(updated_snippet
+        .full_code
+        .ends_with("\n// Updated code\n'''"));
 
     // Delete the code snippet
     dao::delete_code_snippet(db.conn(), snippet_id).unwrap();
@@ -82,7 +91,9 @@ fn test_create_and_read_journal_entry() {
     let entry_id = dao::create_journal_entry(db.conn(), &journal_entry).unwrap();
 
     // Read the journal entry back from the database
-    let read_entry = dao::read_journal_entry(db.conn(), entry_id).unwrap().unwrap();
+    let read_entry = dao::read_journal_entry(db.conn(), entry_id)
+        .unwrap()
+        .unwrap();
 
     // --- Assertions ---
     assert_eq!(
@@ -131,4 +142,31 @@ fn test_language_functions() {
     // Test language_exists with non-existent language
     let exists_not = dao::language_exists(db.conn(), "nonexistent").unwrap();
     assert!(!exists_not);
+}
+
+#[test]
+fn test_create_and_get_mood_entries() {
+    let db = setup_test_db();
+
+    // Test creating mood entry without a note
+    let mood1 = "Happy";
+    let id1 = dao::create_mood_entry(db.conn(), mood1, None).unwrap();
+    assert!(id1 > 0);
+
+    // Test creating mood entry with a note
+    let mood2 = "Focused";
+    let note2 = Some("Working on Rust tests");
+    let id2 = dao::create_mood_entry(db.conn(), mood2, note2).unwrap();
+    assert!(id2 > 0);
+
+    // Get all mood entries
+    let entries = dao::get_mood_entries(db.conn()).unwrap();
+    assert_eq!(entries.len(), 2);
+
+    // Since they are ordered by date DESC, the last one should be first
+    // However, if they are created in the same millisecond, the order might be different.
+    // Let's verify the contents regardless of order.
+    let mut moods: Vec<String> = entries.iter().map(|e| e.mood.clone()).collect();
+    moods.sort();
+    assert_eq!(moods, vec!["Focused".to_string(), "Happy".to_string()]);
 }

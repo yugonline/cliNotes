@@ -1,9 +1,14 @@
-use cli_notes::db;
-use cli_notes::dao;
-use std::path::PathBuf;
-use cli_notes::dao::{create_journal_entry, get_journal_entries_by_period, search_journal_entries, summarize_journal_entries, create_code_snippet, read_code_snippet, create_learning_note};
-use cli_notes::models::{CodeSnippet, JournalEntry};
 use clap::{Parser, Subcommand};
+use cli_notes::dao;
+use cli_notes::dao::{
+    create_code_snippet, create_journal_entry, create_learning_note, create_mood_entry,
+    get_journal_entries_by_period, get_mood_entries, read_code_snippet, search_journal_entries,
+    summarize_journal_entries,
+};
+use cli_notes::db;
+use cli_notes::interactive;
+use cli_notes::models::{CodeSnippet, JournalEntry};
+use std::path::PathBuf;
 
 #[derive(Parser, Debug)]
 #[command(
@@ -32,6 +37,11 @@ enum Commands {
     Note {
         #[command(subcommand)]
         command: NoteCommands,
+    },
+    /// Mood tracking operations
+    Mood {
+        #[command(subcommand)]
+        command: MoodCommands,
     },
 }
 
@@ -76,7 +86,6 @@ enum SnippetCommands {
     },
 }
 
-
 #[derive(Subcommand, Debug)]
 enum NoteCommands {
     /// Add a new learning note by its file path
@@ -91,35 +100,173 @@ enum NoteCommands {
     },
 }
 
+#[derive(Subcommand, Debug)]
+enum MoodCommands {
+    /// Log your current mood
+    Log {
+        /// The mood you are feeling (e.g., Happy, Focused, Tired)
+        mood: String,
+        /// Optional note about why you feel this way
+        #[arg(long)]
+        note: Option<String>,
+    },
+    /// View recent mood history
+    History {},
+}
 
+fn handle_one_off_command(command: Commands, database: &db::Database) {
+    match command {
+        Commands::Journal { command } => match command {
+            JournalCommands::Add { entry, tags } => {
+                let journal_entry = JournalEntry::new(entry, tags);
+                match create_journal_entry(database.conn(), &journal_entry) {
+                    Ok(id) => {
+                        println!("✅ Journal entry created successfully with ID: {}", id);
+                        println!("🤖 AI analysis completed - sentiment and tags automatically generated!");
+                    }
+                    Err(e) => println!("❌ Error creating journal entry: {}", e),
+                }
+            }
+            JournalCommands::Summarize { period } => {
+                match get_journal_entries_by_period(database.conn(), &period) {
+                    Ok(entries) => {
+                        if entries.is_empty() {
+                            println!("📝 No journal entries found for the {} period.", period);
+                        } else {
+                            println!("📊 AI Summary for the past {}:", period);
+                            println!("Found {} entries", entries.len());
 
+                            let summary = summarize_journal_entries(&entries);
 
+                            println!("\n🎭 Sentiment Analysis:");
+                            println!("  Positive: {} entries", summary.positive_count);
+                            println!("  Negative: {} entries", summary.negative_count);
+                            println!("  Neutral: {} entries", summary.neutral_count);
+
+                            println!("\n🏷️  Most common topics: {}", summary.common_topics);
+                        }
+                    }
+                    Err(e) => println!("❌ Error retrieving entries: {}", e),
+                }
+            }
+            JournalCommands::Insights { query } => {
+                match search_journal_entries(database.conn(), &query) {
+                    Ok(entries) => {
+                        if entries.is_empty() {
+                            println!("🔍 No entries found matching your query: '{}'", query);
+                        } else {
+                            println!("🧠 AI Insights for query: '{}'", query);
+                            println!("Found {} relevant entries:\n", entries.len());
+
+                            for (i, entry) in entries.iter().take(3).enumerate() {
+                                println!(
+                                    "{}. [{}] {}",
+                                    i + 1,
+                                    entry.date.format("%Y-%m-%d"),
+                                    entry.entry.chars().take(100).collect::<String>()
+                                );
+                                if let Some(sentiment) = &entry.sentiment {
+                                    println!("   Sentiment: {}", sentiment);
+                                }
+                                if let Some(ai_tags) = &entry.ai_tags {
+                                    println!("   AI Tags: {}", ai_tags);
+                                }
+                                println!();
+                            }
+
+                            if entries.len() > 3 {
+                                println!("... and {} more entries", entries.len() - 3);
+                            }
+                        }
+                    }
+                    Err(e) => println!("❌ Error searching entries: {}", e),
+                }
+            }
+        },
+        Commands::Snippet { command } => match command {
+            SnippetCommands::Add { code, lang } => {
+                let new_snippet = CodeSnippet {
+                    id: 0,
+                    full_code: code,
+                    created_at: chrono::Local::now(),
+                    updated_at: chrono::Local::now(),
+                    language_id: 0,
+                };
+                match create_code_snippet(database.conn(), &new_snippet, &lang) {
+                    Ok(id) => println!("✅ Snippet created successfully with ID: {}", id),
+                    Err(e) => eprintln!("❌ Error creating snippet: {}", e),
+                }
+            }
+            SnippetCommands::Show { id } => match read_code_snippet(database.conn(), id) {
+                Ok(Some(snippet)) => {
+                    println!("--- Snippet ID: {} ---", snippet.id);
+                    println!("Language ID: {}", snippet.language_id);
+                    println!("Created At: {}", snippet.created_at);
+                    println!("---\n{} \n---", snippet.full_code);
+                }
+                Ok(None) => println!("🔍 Snippet with ID {} not found.", id),
+                Err(e) => eprintln!("❌ Error reading snippet: {}", e),
+            },
+        },
+        Commands::Note { command } => match command {
+            NoteCommands::Add { path } => match create_learning_note(database.conn(), &path) {
+                Ok(id) => println!("✅ Note linked successfully with ID: {}", id),
+                Err(e) => eprintln!("❌ Error linking note: {}", e),
+            },
+            NoteCommands::Show { id } => match dao::read_learning_note(database.conn(), id) {
+                Ok(Some(note)) => {
+                    println!("Note ID: {}", note.id);
+                    println!("File Path: {}", note.file_path);
+                    println!("File Name: {}", note.file_name);
+                    println!("Created At: {}", note.created_at);
+                    println!("Updated At: {}", note.updated_at);
+                }
+                Ok(None) => println!("Note with ID {} not found.", id),
+                Err(e) => eprintln!("Error reading note: {}", e),
+            },
+        },
+        Commands::Mood { command } => match command {
+            MoodCommands::Log { mood, note } => {
+                match create_mood_entry(database.conn(), &mood, note.as_deref()) {
+                    Ok(id) => println!("✅ Mood logged successfully with ID: {}", id),
+                    Err(e) => eprintln!("❌ Error logging mood: {}", e),
+                }
+            }
+            MoodCommands::History {} => match get_mood_entries(database.conn()) {
+                Ok(entries) => {
+                    if entries.is_empty() {
+                        println!("📝 No mood entries found.");
+                    } else {
+                        println!("🌈 Mood History:");
+                        for entry in entries.iter().take(10) {
+                            println!(
+                                "[{}]: {} - {}",
+                                entry.date.format("%Y-%m-%d %H:%M"),
+                                entry.mood,
+                                entry.note.as_deref().unwrap_or("No note")
+                            );
+                        }
+                    }
+                }
+                Err(e) => eprintln!("❌ Error retrieving mood history: {}", e),
+            },
+        },
+    }
+}
 
 fn main() {
-    use std::env;
-
-    if let Ok(path) = env::current_dir() {
-        println!("The current directory is {}", path.display());
-    }
-
-    // Replace the old db_path line with this block
     let db_path: PathBuf = match dirs::config_dir() {
         Some(mut path) => {
-            path.push("clinotes"); // Create a directory for our app
+            path.push("clinotes");
             if !path.exists() {
                 std::fs::create_dir_all(&path).expect("Failed to create config directory");
             }
-            path.push("clinotes.db"); // The final DB file path
+            path.push("clinotes.db");
             path
         }
-        None => {
-            // Fallback for rare cases where config dir can't be found
-            eprintln!("Warning: Could not find a config directory. Using current directory.");
-            PathBuf::from("clidblocal.db")
-        }
+        None => PathBuf::from("clinotes.db"),
     };
 
-    // Create a new database connection
     let database = match db::Database::new(db_path.to_str().unwrap()) {
         Ok(db) => db,
         Err(e) => {
@@ -128,160 +275,14 @@ fn main() {
         }
     };
 
-    //Initialize the database ( create tables if they don't exist)
     if let Err(e) = database.initialize() {
         eprintln!("❌ Error initializing database: {}", e);
         std::process::exit(1);
     }
 
-
     let opts: CliNotes = CliNotes::parse();
     match opts.command {
-        Some(Commands::Journal { command }) => {
-            match command {
-                JournalCommands::Add { entry, tags } => {
-                    let journal_entry = JournalEntry::new(entry, tags);
-                    match create_journal_entry(database.conn(), &journal_entry) {
-                        Ok(id) => {
-                            println!("✅ Journal entry created successfully with ID: {}", id);
-                            println!("🤖 AI analysis completed - sentiment and tags automatically generated!");
-                        }
-                        Err(e) => println!("❌ Error creating journal entry: {}", e),
-                    }
-                }
-                JournalCommands::Summarize { period } => {
-                    match get_journal_entries_by_period(database.conn(), &period) {
-                        Ok(entries) => {
-                            if entries.is_empty() {
-                                println!("📝 No journal entries found for the {} period.", period);
-                            } else {
-                                println!("📊 AI Summary for the past {}:", period);
-                                println!("Found {} entries", entries.len());
-                                
-                                let summary = summarize_journal_entries(&entries);
-                                
-                                println!("\n🎭 Sentiment Analysis:");
-                                println!("  Positive: {} entries", summary.positive_count);
-                                println!("  Negative: {} entries", summary.negative_count);
-                                println!("  Neutral: {} entries", summary.neutral_count);
-                                
-                                println!("\n🏷️  Most common topics: {}", summary.common_topics);
-                            }
-                        }
-                        Err(e) => println!("❌ Error retrieving entries: {}", e),
-                    }
-                }
-                JournalCommands::Insights { query } => {
-                    match search_journal_entries(database.conn(), &query) {
-                        Ok(entries) => {
-                            if entries.is_empty() {
-                                println!("🔍 No entries found matching your query: '{}'", query);
-                            } else {
-                                println!("🧠 AI Insights for query: '{}'", query);
-                                println!("Found {} relevant entries:\n", entries.len());
-                                
-                                for (i, entry) in entries.iter().take(3).enumerate() {
-                                    println!("{}. [{}] {}", 
-                                        i + 1, 
-                                        entry.date.format("%Y-%m-%d"),
-                                        entry.entry.chars().take(100).collect::<String>()
-                                    );
-                                    if let Some(sentiment) = &entry.sentiment {
-                                        println!("   Sentiment: {}", sentiment);
-                                    }
-                                    if let Some(ai_tags) = &entry.ai_tags {
-                                        println!("   AI Tags: {}", ai_tags);
-                                    }
-                                    println!();
-                                }
-                                
-                                if entries.len() > 3 {
-                                    println!("... and {} more entries", entries.len() - 3);
-                                }
-                            }
-                        }
-                        Err(e) => println!("❌ Error searching entries: {}", e),
-                    }
-                }
-            }
-        }
-        Some(Commands::Snippet { command }) => {
-            match command {
-                SnippetCommands::Add { code, lang } => {
-                    let new_snippet = CodeSnippet {
-                        id: 0, // ID is set by the database
-                        full_code: code,
-                        created_at: chrono::Local::now(),
-                        updated_at: chrono::Local::now(),
-                        language_id: 0, // This will be looked up by the DAO
-                    };
-                    match create_code_snippet(database.conn(), &new_snippet, &lang) {
-                        Ok(id) => println!("✅ Snippet created successfully with ID: {}", id),
-                        Err(e) => eprintln!("❌ Error creating snippet: {}", e),
-                    }
-                }
-                SnippetCommands::Show { id } => {
-                    match read_code_snippet(database.conn(), id) {
-                        Ok(Some(snippet)) => {
-                            println!("--- Snippet ID: {} ---", snippet.id);
-                            println!("Language ID: {}", snippet.language_id); // In a future task, we can look up the name
-                            println!("Created At: {}", snippet.created_at);
-                            println!("---\n{} \n---", snippet.full_code);
-                        }
-                        Ok(None) => println!("🔍 Snippet with ID {} not found.", id),
-                        Err(e) => eprintln!("❌ Error reading snippet: {}", e),
-                    }
-                }
-            }
-        }
-        Some(Commands::Note { command }) => {
-            match command {
-                NoteCommands::Add { path } => {
-                    match create_learning_note(database.conn(), &path) {
-                        Ok(id) => println!("✅ Note linked successfully with ID: {}", id),
-                        Err(e) => eprintln!("❌ Error linking note: {}", e),
-                    }
-                }
-                NoteCommands::Show { id } => {
-                    match dao::read_learning_note(database.conn(), id) {
-                        Ok(Some(note)) => {
-                            println!("Note ID: {}", note.id);
-                            println!("File Path: {}", note.file_path);
-                            println!("File Name: {}", note.file_name);
-                            println!("Created At: {}", note.created_at);
-                            println!("Updated At: {}", note.updated_at);
-                        }
-                        Ok(None) => println!("Note with ID {} not found.", id),
-                        Err(e) => eprintln!("Error reading note: {}", e),
-                    }
-                }
-            }
-        }
-        None => {
-            println!("---------------------------------------------------");
-            println!(" ██████ ██      ██ ███    ██  ██████  ████████ ███████ ███████ ");
-            println!("██      ██      ██ ████   ██ ██    ██    ██    ██      ██      ");
-            println!("██      ██      ██ ██ ██  ██ ██    ██    ██    █████   ███████ ");
-            println!("██      ██      ██ ██  ██ ██ ██    ██    ██    ██           ██ ");
-            println!(" ██████ ███████ ██ ██   ████  ██████     ██    ███████ ███████ ");
-            println!("                                                                ");
-            println!("                                                                ");
-            println!("");
-            println!("Welcome to CliNotes - AI-Powered Journaling!");
-            println!("");
-            println!("🤖 AI Journal Features:");
-            println!("[1] Add Journal Entry (with AI sentiment analysis & auto-tagging)");
-            println!("[2] AI Summary (weekly/monthly insights)");
-            println!("[3] AI Insights (ask questions about your entries)");
-            println!("[4] View Learning Notes (Latest 3 entries)");
-            println!("[5] View Code Snippets (Last 5 entries)");
-            println!("[6] Add new Code Snippet");
-            println!("[7] Exit");
-            println!("");
-            println!("💡 Try: 'cargo run -- journal add \"Today I learned Rust!\"'");
-            println!("💡 Try: 'cargo run -- journal summarize --period week'");
-            println!("💡 Try: 'cargo run -- journal insights \"How do I feel about coding?\"'");
-            println!("---------------------------------------------------");
-        }
+        Some(command) => handle_one_off_command(command, &database),
+        None => interactive::run(&database),
     }
 }

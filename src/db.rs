@@ -17,30 +17,34 @@ impl Database {
         &self.conn
     }
 
-
     /// Initialize database by creating tables if they dont exist.
     pub fn initialize(&self) -> Result<(), rusqlite::Error> {
         // Check if journal_entries table exists
         if !self.check_existence("table", "journal_entries")? {
             // Read the entire content of sql/init.sql file and execute it as a batch
             let init_sql_path = "sql/init.sql";
-            let init_sql_content = fs::read_to_string(init_sql_path)
-                .map_err(|e| rusqlite::Error::SqliteFailure(
+            let init_sql_content = fs::read_to_string(init_sql_path).map_err(|e| {
+                rusqlite::Error::SqliteFailure(
                     rusqlite::ffi::Error {
                         code: ErrorCode::Unknown,
                         extended_code: 1,
                     },
                     Some(format!("Failed to read {}: {}", init_sql_path, e)),
-                ))?;
+                )
+            })?;
 
-            self.conn.execute_batch(&init_sql_content)
-                .map_err(|e| rusqlite::Error::SqliteFailure(
+            self.conn.execute_batch(&init_sql_content).map_err(|e| {
+                rusqlite::Error::SqliteFailure(
                     rusqlite::ffi::Error {
                         code: ErrorCode::Unknown,
                         extended_code: 1,
                     },
-                    Some(format!("Failed to execute batch from {}: {}", init_sql_path, e)),
-                ))?;
+                    Some(format!(
+                        "Failed to execute batch from {}: {}",
+                        init_sql_path, e
+                    )),
+                )
+            })?;
         }
 
         // Verify all required tables and triggers exist
@@ -85,6 +89,14 @@ impl Database {
                     )),
                 ));
             }
+        }
+
+        // Migration: Ensure mood_entries table exists
+        if !self.check_existence("table", "mood_entries")? {
+            self.conn.execute(
+                "CREATE TABLE IF NOT EXISTS mood_entries (id INTEGER PRIMARY KEY AUTOINCREMENT, mood TEXT NOT NULL, note TEXT, date DATETIME DEFAULT CURRENT_TIMESTAMP)",
+                [],
+            )?;
         }
 
         Ok(())
